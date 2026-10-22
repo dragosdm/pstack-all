@@ -1,0 +1,34 @@
+### byte change in a skill
+break: printf x >>pstack/skills/how/SKILL.md
+integrity: FAIL pstack/ tree abf7dc67810bff15cc7a5e3c213988ee4dd9a398 != lock tree d08bf3a76c8f3bdaeb9af65c98344c85a304fb63
+check: FAIL base (exit=1)
+### root plugin.json edited by hand
+break: sed -i 's/go deep first/go deep/' plugin.json
+manifests: DRIFT plugin.json (grok-cli) differs from pstack/plugin.json
+manifests: FAIL run `node scripts/sync-manifests.mjs` and commit the result
+check: FAIL manifests (exit=1)
+### catalog points at a missing source
+break: sed -i 's/"source": "pstack"/"source": "nope"/' .cursor-plugin/marketplace.json
+manifests: DRIFT .cursor-plugin/marketplace.json (cursor, grok-bot) differs from pstack/plugin.json
+manifests: FAIL run `node scripts/sync-manifests.mjs` and commit the result
+catalog: FAIL upstream validate-plugins.mjs
+check: FAIL manifests catalog (exit=1)
+### catalog hides pstack from Grok Bot
+break: jq '.plugins[0].minClientVersions = {grokbot: "never"}' .cursor-plugin/marketplace.json >m && mv m .cursor-plugin/marketplace.json
+manifests: DRIFT .cursor-plugin/marketplace.json (cursor, grok-bot) differs from pstack/plugin.json
+manifests: FAIL run `node scripts/sync-manifests.mjs` and commit the result
+catalog: FAIL expected one pstack entry with no minClientVersions, found 1 entries and gates [{"grokbot":"never"}]
+check: FAIL manifests catalog (exit=1)
+### root plugin.json removed
+break: rm plugin.json
+manifests: DRIFT plugin.json (grok-cli) is missing
+manifests: FAIL run `node scripts/sync-manifests.mjs` and commit the result
+grok: FAIL repo root install loaded 'pstack v0.15.30 (subdir: pstack)', not the root plugin.json (version missing)
+check: FAIL manifests grok (exit=1)
+### root plugin.json loads only one skill
+break: jq '.skills = "./pstack/skills/how/"' plugin.json >m && mv m plugin.json
+manifests: DRIFT plugin.json (grok-cli) differs from pstack/plugin.json
+manifests: FAIL run `node scripts/sync-manifests.mjs` and commit the result
+grok: FAIL repo root install differs from pstack/ install
+check: FAIL manifests grok (exit=1)
+selftest: every break failed its layer

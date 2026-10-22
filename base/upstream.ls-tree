@@ -1,0 +1,3 @@
+100644 blob 8d69bb1c801befe9979536fde1d50ff366c82060	schemas/marketplace.schema.json
+100644 blob 02903d117b6a0e3bf6acd35aab3d48d91cd54a5e	schemas/plugin.schema.json
+100644 blob fda6c136114d3ce0a5b81bb8cf3f750629415d16	scripts/validate-plugins.mjs
