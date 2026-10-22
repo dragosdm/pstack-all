@@ -1,0 +1,16 @@
+{
+  "name": "pstack-all",
+  "owner": {
+    "name": "Dragos Musetescu"
+  },
+  "metadata": {
+    "description": "pstack, unchanged, packaged for more harnesses"
+  },
+  "plugins": [
+    {
+      "name": "pstack",
+      "source": "./",
+      "description": "if you want to go fast, go deep first. pstack helps you write less, but higher quality code. rigorous agent workflows you can parallelize with confidence."
+    }
+  ]
+}

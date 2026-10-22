@@ -14,10 +14,11 @@ layer base scripts/check-base.sh
 layer manifests node scripts/sync-manifests.mjs --check
 layer catalog scripts/check-catalog.sh
 layer grok scripts/check-grok.sh
+layer claude scripts/check-claude.sh
 
 echo "==="
 if ((${#failed[@]} > 0)); then
   echo "check: FAIL ${failed[*]}"
   exit 1
 fi
-echo "check: PASS base manifests catalog grok"
+echo "check: PASS base manifests catalog grok claude"

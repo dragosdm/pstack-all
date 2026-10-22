@@ -1,10 +1,23 @@
 #!/usr/bin/env node
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const base = JSON.parse(readFileSync(join(ROOT, "pstack/plugin.json"), "utf8"));
+// Claude Code rejects a directory here and wants each agent file.
+const agents = readdirSync(join(ROOT, "pstack/agents"))
+  .filter((name) => name.endsWith(".md"))
+  .sort()
+  .map((name) => `./pstack/agents/${name}`);
+// Upstream writes this line into each SKILL.md of a generated Claude tree; a hook keeps pstack/ unchanged.
+const ADAPTER =
+  'echo "pstack skills use Cursor names. Before you follow a pstack skill, read ${CLAUDE_PLUGIN_ROOT}/pstack/docs/harness/claude-code.md once per session."';
+const catalog = {
+  name: "pstack-all",
+  owner: { name: "Dragos Musetescu" },
+  metadata: { description: "pstack, unchanged, packaged for more harnesses" },
+};
 
 // docs/specs/<harness>.md records the verified behavior behind each row.
 const HARNESSES = [
@@ -17,10 +30,26 @@ const HARNESSES = [
     harness: "cursor, grok-bot",
     file: ".cursor-plugin/marketplace.json",
     render: () => ({
-      name: "pstack-all",
-      owner: { name: "Dragos Musetescu" },
-      metadata: { description: "pstack, unchanged, packaged for more harnesses" },
+      ...catalog,
       plugins: [{ name: base.name, source: "pstack", description: base.description }],
+    }),
+  },
+  {
+    harness: "claude-code",
+    file: ".claude-plugin/plugin.json",
+    render: () => ({
+      ...base,
+      skills: "./pstack/skills/",
+      agents,
+      hooks: { SessionStart: [{ hooks: [{ type: "command", command: ADAPTER }] }] },
+    }),
+  },
+  {
+    harness: "claude-code",
+    file: ".claude-plugin/marketplace.json",
+    render: () => ({
+      ...catalog,
+      plugins: [{ name: base.name, source: "./", description: base.description }],
     }),
   },
 ];

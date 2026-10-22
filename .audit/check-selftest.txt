@@ -23,7 +23,7 @@ check: FAIL manifests catalog (exit=1)
 break: rm plugin.json
 manifests: DRIFT plugin.json (grok-cli) is missing
 manifests: FAIL run `node scripts/sync-manifests.mjs` and commit the result
-grok: FAIL repo root install loaded 'pstack v0.15.30 (subdir: pstack)', not the root plugin.json (version missing)
+grok: FAIL repo root install loaded 'pstack v0.15.30', not the root plugin.json (version missing)
 check: FAIL manifests grok (exit=1)
 ### root plugin.json loads only one skill
 break: jq '.skills = "./pstack/skills/how/"' plugin.json >m && mv m plugin.json
@@ -31,4 +31,30 @@ manifests: DRIFT plugin.json (grok-cli) differs from pstack/plugin.json
 manifests: FAIL run `node scripts/sync-manifests.mjs` and commit the result
 grok: FAIL repo root install differs from pstack/ install
 check: FAIL manifests grok (exit=1)
+### Claude manifest loads only one skill
+break: jq '.skills = "./pstack/skills/how/"' .claude-plugin/plugin.json >m && mv m .claude-plugin/plugin.json
+manifests: DRIFT .claude-plugin/plugin.json (claude-code) differs from pstack/plugin.json
+manifests: FAIL run `node scripts/sync-manifests.mjs` and commit the result
+claude: FAIL install lists skills [how], pstack/skills has [architect,arena,automate-me,benchmark-checklist,blast-radius,bro,correct,create-formal-verification-skill,create-verification-skill,figure-it-out,how,interrogate,in-your-own-words,ketchup,maintain-formal-verification-skill,maintain-verification-skill,make-bot-ui,no-comments,poteto-help,poteto-mode,principle-attack-the-premise,principle-boundary-discipline,principle-build-the-lever,principle-encode-lessons-in-structure,principle-exhaust-the-design-space,principle-experience-first,principle-explain-the-number,principle-fix-root-causes,principle-foundational-thinking,principle-guard-the-context-window,principle-laziness-protocol,principle-make-operations-idempotent,principle-migrate-callers-then-delete-legacy-apis,principle-minimize-reader-load,principle-model-the-domain,principle-never-block-on-the-human,principle-outcome-oriented-execution,principle-prove-it-works,principle-redesign-from-first-principles,principle-separate-before-serializing-shared-state,principle-sequence-verifiable-units,principle-subtract-before-you-add,principle-test-behavior-not-implementation,principle-type-system-discipline,recall,reflect,setup-pstack,sharpen,show-me-your-work,statechart,swarm,tdd,teach,technical-writing,typescript-best-practices,unslop,why]
+check: FAIL manifests claude (exit=1)
+### Claude manifest drops an agent
+break: jq '.agents |= .[:1]' .claude-plugin/plugin.json >m && mv m .claude-plugin/plugin.json
+manifests: DRIFT .claude-plugin/plugin.json (claude-code) differs from pstack/plugin.json
+manifests: FAIL run `node scripts/sync-manifests.mjs` and commit the result
+claude: FAIL installed manifest lists agents [comment-sicko], pstack/agents has [comment-sicko,poteto-agent]
+check: FAIL manifests claude (exit=1)
+### Claude adapter hook removed
+break: jq 'del(.hooks)' .claude-plugin/plugin.json >m && mv m .claude-plugin/plugin.json
+manifests: DRIFT .claude-plugin/plugin.json (claude-code) differs from pstack/plugin.json
+manifests: FAIL run `node scripts/sync-manifests.mjs` and commit the result
+claude: FAIL install lists hooks [], want SessionStart
+claude: FAIL SessionStart hook names 'nothing', not the installed pstack/docs/harness/claude-code.md
+check: FAIL manifests claude (exit=1)
+### Claude marketplace removed
+break: rm .claude-plugin/marketplace.json
+manifests: DRIFT .claude-plugin/marketplace.json (claude-code) is missing
+manifests: FAIL run `node scripts/sync-manifests.mjs` and commit the result
+claude: FAIL validate --strict .claude-plugin/marketplace.json
+check: FAIL manifests claude (exit=1)
 selftest: every break failed its layer
+exit 0

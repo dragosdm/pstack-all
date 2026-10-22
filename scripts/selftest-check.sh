@@ -30,6 +30,10 @@ run "catalog points at a missing source" catalog "sed -i 's/\"source\": \"pstack
 run "catalog hides pstack from Grok Bot" catalog "jq '.plugins[0].minClientVersions = {grokbot: \"never\"}' .cursor-plugin/marketplace.json >m && mv m .cursor-plugin/marketplace.json"
 run "root plugin.json removed" grok "rm plugin.json"
 run "root plugin.json loads only one skill" grok "jq '.skills = \"./pstack/skills/how/\"' plugin.json >m && mv m plugin.json"
+run "Claude manifest loads only one skill" claude "jq '.skills = \"./pstack/skills/how/\"' .claude-plugin/plugin.json >m && mv m .claude-plugin/plugin.json"
+run "Claude manifest drops an agent" claude "jq '.agents |= .[:1]' .claude-plugin/plugin.json >m && mv m .claude-plugin/plugin.json"
+run "Claude adapter hook removed" claude "jq 'del(.hooks)' .claude-plugin/plugin.json >m && mv m .claude-plugin/plugin.json"
+run "Claude marketplace removed" claude "rm .claude-plugin/marketplace.json"
 
 ((bad == 0)) && echo "selftest: every break failed its layer" || echo "selftest: FAIL a break went unnoticed"
 exit "$bad"
