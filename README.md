@@ -20,7 +20,7 @@ Updating the base is a deliberate step. Copy the new upstream tree, rewrite `bas
 ## Check
 
 ```
-scripts/check-base.sh
+PSTACK_UPSTREAM_DIR=<cursor/plugins clone> scripts/check-base.sh
 ```
 
-Needs `git`, `bun`, and `node`. The 31 statechart tests that need TLC are skipped without Java and `TLA2TOOLS`.
+Without `PSTACK_UPSTREAM_DIR` the lock is trusted as written. Needs `git`, `bun`, `node`, and `column`. The baseline was recorded with bun 1.3.10 and node v26.8.2. The 31 statechart tests that need TLC are skipped without Java and `TLA2TOOLS`. `.audit/base-selftest.txt` shows the check failing on four deliberate breaks.

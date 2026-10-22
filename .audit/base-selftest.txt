@@ -1,0 +1,36 @@
+### byte change in pstack/skills/how/SKILL.md, then --record
+upstream: PASS /home/dragos/Work/internal/opensource/cursor-plugins eb4db2b55b2b7dec3d9282754cddf0a56bf4ff10:pstack is d08bf3a76c8f3bdaeb9af65c98344c85a304fb63
+integrity: FAIL pstack/ tree cca6d40ec8190a9b355ac8c9e86aab7bf10f0d1f != lock tree d08bf3a76c8f3bdaeb9af65c98344c85a304fb63
+55c55
+< 100644 blob 67edc340d4d8a9c7ab0b9e08c663e0e63b8d9125	pstack/skills/how/SKILL.md
+---
+> 100644 blob 5ee62cd00fdf60f09fa3f6a5f4fc5db02c4092ba	pstack/skills/how/SKILL.md
+tests: REFUSED to record a baseline while the base is not intact
+exit=1
+### exec bit removed from watch-pr
+upstream: PASS /home/dragos/Work/internal/opensource/cursor-plugins eb4db2b55b2b7dec3d9282754cddf0a56bf4ff10:pstack is d08bf3a76c8f3bdaeb9af65c98344c85a304fb63
+integrity: FAIL pstack/ tree 0f0b916bc8ba09edf41b4a1b5f0e62761ed2f544 != lock tree d08bf3a76c8f3bdaeb9af65c98344c85a304fb63
+116c116
+< 100755 blob 99807d577c3b006cfe6ee9e149cf2914bfd4afd6	pstack/skills/poteto-mode/scripts/watch-pr/watch-pr
+---
+> 100644 blob 99807d577c3b006cfe6ee9e149cf2914bfd4afd6	pstack/skills/poteto-mode/scripts/watch-pr/watch-pr
+exit=1
+### lock tree rewritten to a wrong hash
+upstream: FAIL eb4db2b55b2b7dec3d9282754cddf0a56bf4ff10:pstack is d08bf3a76c8f3bdaeb9af65c98344c85a304fb63, lock says 0000000000000000000000000000000000000000
+integrity: FAIL pstack/ tree d08bf3a76c8f3bdaeb9af65c98344c85a304fb63 != lock tree 0000000000000000000000000000000000000000
+toolchain: bun 1.3.10, node v26.8.2, TLA2TOOLS=unset
+exit=1
+### failing test injected into the temp copy path (watch-pr policy test)
+upstream: PASS /home/dragos/Work/internal/opensource/cursor-plugins eb4db2b55b2b7dec3d9282754cddf0a56bf4ff10:pstack is d08bf3a76c8f3bdaeb9af65c98344c85a304fb63
+integrity: FAIL pstack/ tree 7ce58485f43ad719c83bf4ef7662f2fcbe9dc86c != lock tree d08bf3a76c8f3bdaeb9af65c98344c85a304fb63
+110c110
+< 100644 blob 6dae16da71800fb06eb37a7e3b296a8d27275b08	pstack/skills/poteto-mode/scripts/watch-pr/policy.test.ts
+---
+> 100644 blob 780be9d07b30785c5519834feddffc25d65d377a	pstack/skills/poteto-mode/scripts/watch-pr/policy.test.ts
+toolchain: bun 1.3.10, node v26.8.2, TLA2TOOLS=unset
+suite                 exit  pass  fail  skip
+poteto-mode bun test  1     54    1     0
+watch-pr typecheck    1     -     1     -
+statechart node test  0     27    0     31
+tests: FAIL differs from base/test-baseline.tsv
+exit=1

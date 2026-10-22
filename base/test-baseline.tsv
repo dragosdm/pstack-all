@@ -1,4 +1,4 @@
-suite	pass	fail	skip
-poteto-mode bun test	68	0	0
-watch-pr typecheck	-	0	-
-statechart node test	27	0	31
+suite	exit	pass	fail	skip
+poteto-mode bun test	0	68	0	0
+watch-pr typecheck	0	-	0	-
+statechart node test	0	27	0	31
