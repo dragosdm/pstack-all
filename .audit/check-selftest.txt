@@ -56,5 +56,43 @@ manifests: DRIFT .claude-plugin/marketplace.json (claude-code) is missing
 manifests: FAIL run `node scripts/sync-manifests.mjs` and commit the result
 claude: FAIL validate --strict .claude-plugin/marketplace.json
 check: FAIL manifests claude (exit=1)
+### Pi package loads only one skill
+break: jq '.pi.skills = ["./pstack/skills/how"]' package.json >m && mv m package.json
+manifests: DRIFT package.json (pi) differs from pstack/plugin.json
+manifests: FAIL run `node scripts/sync-manifests.mjs` and commit the result
+pi: FAIL get_commands lists pstack skills [how], pstack/skills has [architect,arena,automate-me,benchmark-checklist,blast-radius,bro,correct,create-formal-verification-skill,create-verification-skill,figure-it-out,how,interrogate,in-your-own-words,ketchup,maintain-formal-verification-skill,maintain-verification-skill,make-bot-ui,no-comments,poteto-help,poteto-mode,principle-attack-the-premise,principle-boundary-discipline,principle-build-the-lever,principle-encode-lessons-in-structure,principle-exhaust-the-design-space,principle-experience-first,principle-explain-the-number,principle-fix-root-causes,principle-foundational-thinking,principle-guard-the-context-window,principle-laziness-protocol,principle-make-operations-idempotent,principle-migrate-callers-then-delete-legacy-apis,principle-minimize-reader-load,principle-model-the-domain,principle-never-block-on-the-human,principle-outcome-oriented-execution,principle-prove-it-works,principle-redesign-from-first-principles,principle-separate-before-serializing-shared-state,principle-sequence-verifiable-units,principle-subtract-before-you-add,principle-test-behavior-not-implementation,principle-type-system-discipline,recall,reflect,setup-pstack,sharpen,show-me-your-work,statechart,swarm,tdd,teach,technical-writing,typescript-best-practices,unslop,why]
+pi: FAIL the system prompt offers [], want [setup-pstack]
+check: FAIL manifests pi (exit=1)
+### Pi package.json removed
+break: rm package.json
+manifests: DRIFT package.json (pi) is missing
+manifests: FAIL run `node scripts/sync-manifests.mjs` and commit the result
+pi: FAIL get_commands lists pstack skills [], pstack/skills has [architect,arena,automate-me,benchmark-checklist,blast-radius,bro,correct,create-formal-verification-skill,create-verification-skill,figure-it-out,how,interrogate,in-your-own-words,ketchup,maintain-formal-verification-skill,maintain-verification-skill,make-bot-ui,no-comments,poteto-help,poteto-mode,principle-attack-the-premise,principle-boundary-discipline,principle-build-the-lever,principle-encode-lessons-in-structure,principle-exhaust-the-design-space,principle-experience-first,principle-explain-the-number,principle-fix-root-causes,principle-foundational-thinking,principle-guard-the-context-window,principle-laziness-protocol,principle-make-operations-idempotent,principle-migrate-callers-then-delete-legacy-apis,principle-minimize-reader-load,principle-model-the-domain,principle-never-block-on-the-human,principle-outcome-oriented-execution,principle-prove-it-works,principle-redesign-from-first-principles,principle-separate-before-serializing-shared-state,principle-sequence-verifiable-units,principle-subtract-before-you-add,principle-test-behavior-not-implementation,principle-type-system-discipline,recall,reflect,setup-pstack,sharpen,show-me-your-work,statechart,swarm,tdd,teach,technical-writing,typescript-best-practices,unslop,why]
+pi: FAIL pi reported errors at startup
+pi: FAIL the system prompt names 'no adapter', not docs/harness/pi.md
+pi: FAIL the system prompt offers [], want [setup-pstack]
+check: FAIL manifests pi (exit=1)
+### Pi extension removed
+break: rm .pi/extensions/pstack.ts
+pi: FAIL the system prompt names 'no adapter', not docs/harness/pi.md
+check: FAIL pi (exit=1)
+### Pi adapter removed
+break: rm docs/harness/pi.md
+pi: FAIL the system prompt names '/tmp/tmp.GQX7itSE3w/repo/docs/harness/pi.md', not docs/harness/pi.md
+check: FAIL pi (exit=1)
+### Pi subagent extension dropped from the package
+break: jq '.pi.extensions |= .[:1]' package.json >m && mv m package.json
+manifests: DRIFT package.json (pi) differs from pstack/plugin.json
+manifests: FAIL run `node scripts/sync-manifests.mjs` and commit the result
+pi: FAIL pstack-subagent spawn, want [CHILD agent=comment-sicko tools=find,grep,ls,read worktree=no
+pi: FAIL stop left [] or lost the worktree branch ''
+check: FAIL manifests pi (exit=1)
+### Pi subagent ignores --agent
+break: sed -i 's/launchArgs.push("--append-system-prompt", agentFile);//' .pi/extensions/subagent/subagent.ts
+pi: FAIL pstack-subagent spawn, want [CHILD agent=comment-sicko tools=find,grep,ls,read worktree=no
+check: FAIL pi (exit=1)
+### Pi subagent stop leaves the worktree
+break: sed -i 's/"worktree", "remove"/"worktree", "list"/' .pi/extensions/subagent/shared.ts
+pi: FAIL stop left [/tmp/tmp.P8haNgbh0d/agent/pstack-subagents/c09a14/worktree 973a8c7 [pstack-subagent/c09a14] prunable] or lost the worktree branch 'pstack-subagent/c09a14'
+check: FAIL pi (exit=1)
 selftest: every break failed its layer
-exit 0

@@ -34,6 +34,13 @@ run "Claude manifest loads only one skill" claude "jq '.skills = \"./pstack/skil
 run "Claude manifest drops an agent" claude "jq '.agents |= .[:1]' .claude-plugin/plugin.json >m && mv m .claude-plugin/plugin.json"
 run "Claude adapter hook removed" claude "jq 'del(.hooks)' .claude-plugin/plugin.json >m && mv m .claude-plugin/plugin.json"
 run "Claude marketplace removed" claude "rm .claude-plugin/marketplace.json"
+run "Pi package loads only one skill" pi "jq '.pi.skills = [\"./pstack/skills/how\"]' package.json >m && mv m package.json"
+run "Pi package.json removed" pi "rm package.json"
+run "Pi extension removed" pi "rm .pi/extensions/pstack.ts"
+run "Pi adapter removed" pi "rm docs/harness/pi.md"
+run "Pi subagent extension dropped from the package" pi "jq '.pi.extensions |= .[:1]' package.json >m && mv m package.json"
+run "Pi subagent ignores --agent" pi "sed -i 's/launchArgs.push(\"--append-system-prompt\", agentFile);//' .pi/extensions/subagent/subagent.ts"
+run "Pi subagent stop leaves the worktree" pi "sed -i 's/\"worktree\", \"remove\"/\"worktree\", \"list\"/' .pi/extensions/subagent/shared.ts"
 
 ((bad == 0)) && echo "selftest: every break failed its layer" || echo "selftest: FAIL a break went unnoticed"
 exit "$bad"

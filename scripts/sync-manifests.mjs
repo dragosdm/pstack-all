@@ -52,6 +52,24 @@ const HARNESSES = [
       plugins: [{ name: base.name, source: "./", description: base.description }],
     }),
   },
+  {
+    // A Pi package is a package.json with a pi key. The subagent extension reads pstack/agents itself.
+    harness: "pi",
+    file: "package.json",
+    render: () => {
+      const { $schema, skills, agents, ...meta } = base;
+      return {
+        ...meta,
+        private: true,
+        type: "module",
+        keywords: [...meta.keywords, "pi-package"],
+        pi: {
+          extensions: ["./.pi/extensions/pstack.ts", "./.pi/extensions/subagent/index.ts"],
+          skills: ["./pstack/skills"],
+        },
+      };
+    },
+  },
 ];
 
 const check = process.argv.includes("--check");
