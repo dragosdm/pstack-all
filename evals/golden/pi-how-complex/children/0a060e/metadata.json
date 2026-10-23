@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "handle": "0a060e",
+  "name": "how-explainer",
+  "requested": {},
+  "parentSessionId": "01a16749-ceab-7118-8371-25fb5c03a876",
+  "parentSessionFile": "/home/user/Work/internal/pstack-all/.verify-runs/20261023T053742Z-r2-pi-how/how-complex.pi.post.2/parent.jsonl",
+  "tmuxSession": "pstack-subagent-0a060e",
+  "runDir": "/home/user/.pi/agent/pstack-subagents/0a060e",
+  "sessionFile": "/home/user/.pi/agent/pstack-subagents/0a060e/session.jsonl",
+  "cwd": "/work/billing-service",
+  "provider": "openai-codex",
+  "model": "gpt-6.1-sol",
+  "thinking": "medium",
+  "launchArgs": [
+    "--tools",
+    "read,bash,grep,find,ls"
+  ],
+  "state": "exited",
+  "hasStarted": true,
+  "createdAt": "2026-10-23T05:46:37.011Z",
+  "updatedAt": "2026-10-23T05:48:20.530Z",
+  "childSessionId": "01a1674c-033f-772c-b1c9-2828ec19f8ee"
+}

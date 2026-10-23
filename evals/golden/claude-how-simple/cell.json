@@ -1,0 +1,19 @@
+{
+  "trial": 1,
+  "arm": "post",
+  "process": {
+    "exit": 0,
+    "timedOut": false,
+    "seconds": null
+  },
+  "golden": true,
+  "scenario": "how-simple",
+  "host": "claude",
+  "pluginRoot": "/work/pstack-all",
+  "project": "/work/invoice-service",
+  "skillsDir": "/work/pstack-all/pstack/skills",
+  "adapterPath": "/work/pstack-all/pstack/docs/harness/claude-code.md",
+  "prompt": "/pstack:how how does computeTotal round amounts in each currency?",
+  "models": "sonnet",
+  "source": "probe run 2026-10-23, claude -p --plugin-dir, sonnet, $0.33"
+}

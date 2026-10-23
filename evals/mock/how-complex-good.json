@@ -1,0 +1,5 @@
+[
+  { "read": "adapter" },
+  { "bash": "set -e\nspawned() { sed -nE 's/^Spawned .* \\(([a-z0-9]+)\\)$/\\1/p'; }\na=$(pstack-subagent spawn --name currency --tools read,bash,grep,find,ls --prompt 'Trace currency rounding. Do not edit files.' | spawned)\nb=$(pstack-subagent spawn --name pricing --tools read,bash,grep,find,ls --prompt 'Trace discounts and tax. Do not edit files.' | spawned)\npstack-subagent wait \"$a\" --timeout 90\npstack-subagent wait \"$b\" --timeout 90\npstack-subagent stop \"$a\"\npstack-subagent stop \"$b\"\nc=$(pstack-subagent spawn --name explainer --tools read,bash,grep,find,ls --prompt 'Explain from the findings. Do not edit files.' | spawned)\npstack-subagent wait \"$c\" --timeout 90\npstack-subagent stop \"$c\"" },
+  { "text": "## Overview\n\nOrders flow through computeTotal. No pstack-models.md exists, so every subagent ran on the session model." }
+]

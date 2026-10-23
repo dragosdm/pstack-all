@@ -1,0 +1,5 @@
+{
+  "why": "Native Cursor took the simple path with one Task, but its Task call carries no read-only marker (mode TASK_MODE_UNSPECIFIED) although how asks for readonly: true. Cursor has no adapter and takes its own model names.",
+  "ok": false,
+  "verdicts": { "loaded": "pass", "adapter": "n/a", "spawns": "pass", "readonly": "fail", "modelsValid": "n/a", "announced": "n/a", "clean": "pass", "rulesUntouched": "n/a" }
+}

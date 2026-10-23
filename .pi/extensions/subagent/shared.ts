@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
 import {
+	cpSync,
 	existsSync,
 	mkdirSync,
 	readFileSync,
@@ -31,6 +32,8 @@ export interface RunMetadata {
 	launchArgs?: string[];
 	/** pstack agent from pstack/agents whose body is appended to the child's system prompt. */
 	agent?: string;
+	/** The --provider, --model and --thinking values passed to spawn; the rest came from the parent session. */
+	requested?: { provider?: string; model?: string; thinking?: string };
 	/** Git worktree the child runs in, on its own branch so commits outlive the run. */
 	worktree?: { repo: string; path: string; branch: string };
 	/** Set by the parent when it stops the child on quit or session switch; the child is relaunched on resume. */
@@ -71,7 +74,7 @@ export function getAgentDir(): string {
 }
 
 export function getRunsDir(): string {
-	// Not "subagents": upstream pi-subagent may be installed beside pstack and would claim the same runs.
+	// Not "subagents": another subagent extension installed beside pstack could claim the same runs.
 	return join(getAgentDir(), "pstack-subagents");
 }
 
@@ -160,11 +163,14 @@ export function removeRunDir(runDir: string): void {
 
 /** Remove a run for good. Its worktree is unregistered first; the branch is kept. */
 export function discardRun(metadata: RunMetadata): void {
-	if (metadata.worktree?.path === join(metadata.runDir, "worktree")) {
+	if (metadata.worktree?.path.endsWith(join("/pstack-worktrees", metadata.handle))) {
 		spawnSync("git", ["-C", metadata.worktree.repo, "worktree", "remove", "--force", metadata.worktree.path], {
 			stdio: "ignore",
 		});
 	}
+	// PSTACK_SUBAGENT_KEEP_DIR keeps each discarded run, for debugging and for transcript capture.
+	const keep = process.env.PSTACK_SUBAGENT_KEEP_DIR;
+	if (keep) cpSync(metadata.runDir, join(keep, metadata.handle), { recursive: true });
 	removeRunDir(metadata.runDir);
 }
 

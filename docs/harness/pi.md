@@ -12,7 +12,8 @@ pstack-subagent wait <handle>
 pstack-subagent stop <handle>
 ```
 
-- `spawn` returns at once and prints `Spawned <name> (<handle>)`. Keep the handle. The subagent works in the background.
+- `spawn` returns at once and prints `Spawned <name> (<handle>)` and the subagent's model. Keep the handle. The subagent works in the background.
+- A spawn without `--model` runs on the session's model. When any subagent did, your final answer says so in one sentence that names the model and the reason, such as "The subagents ran on the session model openai-codex/gpt-6.1-sol, because no pstack-models.md line names one that this session has."
 - `wait` blocks until the subagent finishes and prints its final answer. Give the `bash` call a timeout above 1800 seconds, and run `wait` without pipes or redirects.
 - `stop` ends the subagent and deletes its transcript. Stop each subagent once you have its result, unless you will `send` it more work.
 - `send <handle> "<message>"` gives an idle subagent a new prompt, or steers a busy one. `--follow-up` queues the message until the current work ends.

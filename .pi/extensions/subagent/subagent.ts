@@ -28,7 +28,8 @@ import {
 
 const VALID_THINKING_LEVELS = new Set(["off", "minimal", "low", "medium", "high", "xhigh", "max"]);
 const extensionPath = join(dirname(fileURLToPath(import.meta.url)), "index.ts");
-const agentsDir = resolve(dirname(fileURLToPath(import.meta.url)), "../../../pstack/agents");
+const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
+const agentsDir = join(packageRoot, "pstack/agents");
 
 function fail(message: string): never {
 	throw new Error(message);
@@ -102,6 +103,7 @@ function spawnSubagent(args: string[]): void {
 	let provider = process.env.PI_PROVIDER;
 	let model = process.env.PI_MODEL;
 	let thinking = process.env.PI_REASONING_LEVEL || "medium";
+	const requested: NonNullable<RunMetadata["requested"]> = {};
 	let cwd = process.cwd();
 	let tools: string | undefined;
 	let noExtensions = false;
@@ -127,15 +129,15 @@ function spawnSubagent(args: string[]): void {
 				i++;
 				break;
 			case "--provider":
-				provider = valueAfter(args, i, arg);
+				provider = requested.provider = valueAfter(args, i, arg);
 				i++;
 				break;
 			case "--model":
-				model = valueAfter(args, i, arg);
+				model = requested.model = valueAfter(args, i, arg);
 				i++;
 				break;
 			case "--thinking":
-				thinking = valueAfter(args, i, arg);
+				thinking = requested.thinking = valueAfter(args, i, arg);
 				i++;
 				break;
 			case "--cwd":
@@ -193,7 +195,10 @@ function spawnSubagent(args: string[]): void {
 
 	let worktree: RunMetadata["worktree"];
 	if (repo !== undefined && worktreeRef !== undefined) {
-		worktree = { repo, path: join(runDir, "worktree"), branch: `pstack-subagent/${handle}` };
+		// Inside the repo's git dir the checkout inherits the repo's saved project trust, which an interactive child could
+		// not grant itself, and git status ignores it.
+		const gitDir = resolve(repo, gitOutput(repo, ["rev-parse", "--git-common-dir"]));
+		worktree = { repo, path: join(gitDir, "pstack-worktrees", handle), branch: `pstack-subagent/${handle}` };
 		try {
 			gitOutput(repo, ["worktree", "add", "-b", worktree.branch, worktree.path, worktreeRef]);
 		} catch (error) {
@@ -210,7 +215,10 @@ function spawnSubagent(args: string[]): void {
 		launchArgs.push("--append-system-prompt", agentFile);
 	}
 	if (tools) launchArgs.push("--tools", tools);
+	// A project-local install is a path relative to the project, so a child in a worktree or another --cwd would lose the
+	// bridge that wait depends on. Pi loads a package given twice only once.
 	if (noExtensions) launchArgs.push("--no-extensions", "--extension", extensionPath);
+	else launchArgs.push("--extension", packageRoot);
 	if (noSkills) launchArgs.push("--no-skills");
 	if (noPromptTemplates) launchArgs.push("--no-prompt-templates");
 	if (noContextFiles) launchArgs.push("--no-context-files");
@@ -221,6 +229,7 @@ function spawnSubagent(args: string[]): void {
 		handle,
 		name,
 		agent,
+		requested,
 		worktree,
 		parentSessionId: process.env.PI_SESSION_ID || undefined,
 		parentSessionFile: process.env.PI_SESSION_FILE || undefined,
@@ -254,8 +263,9 @@ function spawnSubagent(args: string[]): void {
 	}
 
 	const worktreeLine = worktree ? `Worktree: ${worktree.path} on branch ${worktree.branch}\n` : "";
+	const source = requested.model ? "requested" : "inherited from the session, not chosen with --model";
 	process.stdout.write(
-		`Spawned ${runDisplayName(metadata)}\nState: busy\n${worktreeLine}Attach: tmux attach -t ${tmuxSession}\n`,
+		`Spawned ${runDisplayName(metadata)}\nState: busy\nModel: ${provider}/${model} ${thinking}, ${source}\n${worktreeLine}Attach: tmux attach -t ${tmuxSession}\n`,
 	);
 }
 

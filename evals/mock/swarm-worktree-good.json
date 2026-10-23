@@ -1,0 +1,5 @@
+[
+  { "read": "adapter" },
+  { "bash": "set -e\nspawned() { sed -nE 's/^Spawned .* \\(([a-z0-9]+)\\)$/\\1/p'; }\na=$(pstack-subagent spawn --name to-minor --worktree HEAD --prompt 'Add a JSDoc line above toMinor and commit.' | spawned)\nb=$(pstack-subagent spawn --name from-minor --worktree HEAD --prompt 'Add a JSDoc line above fromMinor and commit.' | spawned)\npstack-subagent wait \"$a\" --timeout 60\npstack-subagent wait \"$b\" --timeout 60\npstack-subagent stop \"$a\"\npstack-subagent stop \"$b\"" },
+  { "text": "Both workers finished on their own branches. They ran on the session model, since no pstack-models.md line names one." }
+]

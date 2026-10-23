@@ -1,0 +1,8 @@
+{
+  "files": {
+    "cell.json": "24cb27f600451b8b9b5d5d20b41a4a156c2fc96f0b09df05130032d8fd1598a8",
+    "expected.json": "31f7c33f71c7456faf48dbd7c8b6a78f9328efd145ddaf3aa9072efef60ee1ef",
+    "git-status.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "transcript.jsonl": "cc875fe69c294cbfb4d83165781c14e28646e310ae8dd720eb09bc0344b4737f"
+  }
+}

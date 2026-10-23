@@ -1,0 +1,19 @@
+{
+  "trial": 1,
+  "arm": "post",
+  "process": {
+    "exit": 0,
+    "timedOut": false,
+    "seconds": null
+  },
+  "golden": true,
+  "scenario": "help-models",
+  "host": "claude",
+  "pluginRoot": "/work/pstack-all",
+  "project": "/work/instance",
+  "skillsDir": "/work/pstack-all/pstack/skills",
+  "adapterPath": "/work/pstack-all/pstack/docs/harness/claude-code.md",
+  "prompt": "/pstack:poteto-help how do I choose which model each pstack role uses, and where does that setting live?",
+  "models": "sonnet",
+  "source": "verify-pstack-all drive-claude.sh 2026-10-22, read-only tools, so the workspace could not change"
+}

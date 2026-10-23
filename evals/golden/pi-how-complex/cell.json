@@ -1,0 +1,38 @@
+{
+  "scenario": "how-complex",
+  "scenarioSha": "0b38bb722eab1af4bf3cd71fc1c013127d88760636c3527f7d7d1ea7d16f09f9",
+  "host": "pi",
+  "arm": "post",
+  "trial": 2,
+  "dir": "/work/cell",
+  "project": "/work/billing-service",
+  "pluginRoot": "/work/pstack-all",
+  "skillsDir": "/work/pstack-all/pstack/skills",
+  "adapterPath": "/work/pstack-all/docs/harness/pi.md",
+  "prompt": "/skill:how give me a full architectural overview of this service: how a POST /invoices request becomes a stored, numbered invoice, across validation, catalog tiers, discount stacking, currency conversion and regional tax, and where each rule lives.",
+  "models": "openai-codex/gpt-6.1-sol:medium",
+  "repoHead": "ad62c521451974e6e2ab3b70057572a7848ae1ef",
+  "repoDirty": true,
+  "pstackTree": "d08bf3a76c8f3bdaeb9af65c98344c85a304fb63",
+  "versions": {
+    "pi": "1.4.0",
+    "node": "v26.12.1"
+  },
+  "piModels": [
+    "openai-codex/gpt-5.6-luna",
+    "openai-codex/gpt-5.6-sol",
+    "openai-codex/gpt-5.6-terra",
+    "openai-codex/gpt-6-astra",
+    "openai-codex/gpt-6-luna",
+    "openai-codex/gpt-6-sol",
+    "openai-codex/gpt-6.1-sol"
+  ],
+  "startedAt": "2026-10-23T05:44:12.501Z",
+  "process": {
+    "exit": 0,
+    "timedOut": false,
+    "seconds": 312
+  },
+  "golden": true,
+  "source": "cells run 20261023T053742Z-r2-pi-how, trial 2, after the Pi adapter announcement fix"
+}

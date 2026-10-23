@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "handle": "cfa053",
+  "name": "how-request",
+  "requested": {},
+  "parentSessionId": "01a16749-ceab-7118-8371-25fb5c03a876",
+  "parentSessionFile": "/home/user/Work/internal/pstack-all/.verify-runs/20261023T053742Z-r2-pi-how/how-complex.pi.post.2/parent.jsonl",
+  "tmuxSession": "pstack-subagent-cfa053",
+  "runDir": "/home/user/.pi/agent/pstack-subagents/cfa053",
+  "sessionFile": "/home/user/.pi/agent/pstack-subagents/cfa053/session.jsonl",
+  "cwd": "/work/billing-service",
+  "provider": "openai-codex",
+  "model": "gpt-6.1-sol",
+  "thinking": "medium",
+  "launchArgs": [
+    "--tools",
+    "read,bash,grep,find,ls"
+  ],
+  "state": "exited",
+  "hasStarted": true,
+  "createdAt": "2026-10-23T05:44:43.333Z",
+  "updatedAt": "2026-10-23T05:46:36.594Z",
+  "childSessionId": "01a1674a-4743-714a-ae5d-f9448fc5b05e"
+}

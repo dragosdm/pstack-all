@@ -1,4 +1,4 @@
-commit 2146173bdefcfa6e50292611950d227c34cc2975 +uncommitted 4 paths, index-tree-of-pstack d08bf3a76c8f3bdaeb9af65c98344c85a304fb63 at 2026-10-23T04:32:40Z
+commit ad62c521451974e6e2ab3b70057572a7848ae1ef +uncommitted 26 paths, index-tree-of-pstack d08bf3a76c8f3bdaeb9af65c98344c85a304fb63 at 2026-10-23T10:40:41Z
 === base
 upstream: PASS /home/dragos/.claude/plugins/marketplaces/cursor-plugins eb4db2b55b2b7dec3d9282754cddf0a56bf4ff10:pstack is d08bf3a76c8f3bdaeb9af65c98344c85a304fb63
 integrity: PASS pstack/ tree d08bf3a76c8f3bdaeb9af65c98344c85a304fb63 == lock tree for eb4db2b55b2b7dec3d9282754cddf0a56bf4ff10:pstack
@@ -37,7 +37,19 @@ pi: get_commands lists 57 skills from pstack/skills, the same names as on disk
 pi: the system prompt of a print run tells the model to read docs/harness/pi.md
 pi: the system prompt offers the model setup-pstack, every pstack skill without disable-model-invocation
 pi: a print run spawned comment-sicko read-only and poteto-agent in a worktree through pstack-subagent, and waited for both
-pi: stop removed both runs, their tmux sessions and the worktree, and kept branch pstack-subagent/50564f
+pi: stop removed both runs, their tmux sessions and the worktree, and kept branch pstack-subagent/43dac9
 pi: PASS repo root installs as a Pi package with every pstack skill, the adapter extension, and working subagents
+=== eval
+eval: cells: golden claude-help-models grades as recorded (6 criteria, ok=true)
+eval: cells: golden claude-how-simple grades as recorded (8 criteria, ok=true)
+eval: cells: golden claude-interrogate-staged grades as recorded (9 criteria, ok=true)
+eval: cells: golden cursor-how-simple grades as recorded (8 criteria, ok=false)
+eval: cells: golden grok-how-complex grades as recorded (9 criteria, ok=false)
+eval: cells: golden pi-how-complex grades as recorded (10 criteria, ok=true)
+eval: cells: catalog of 8 scenarios is consistent
+eval: a scripted correct how-complex run in Pi grades ok on every criterion
+eval: a scripted wrong run (no adapter read, serial writable spawns, a child left running, no fallback line) fails exactly adapter,spawns,parallel,readonly,announced,noLeftover
+eval: two --worktree workers of a project-local install start together, finish and are stopped
+eval: PASS scenario catalog, golden transcripts, and the Pi cell pipeline grade as expected
 ===
-check: PASS base manifests catalog grok claude pi
+check: PASS base manifests catalog grok claude pi eval

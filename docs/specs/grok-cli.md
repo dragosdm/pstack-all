@@ -43,7 +43,15 @@ Both installs, the repo root and `pstack/` on its own, give 57 skills and 2 agen
 
 `scripts/check-grok.sh` installs `pstack/` and the repo root into throwaway `HOME` directories, compares `grok inspect --json`, and confirms that the root install loaded the root `plugin.json`. Set `GROK_BIN` to choose the binary. The default resolves through `mise which grok`, because the `mise` shim fails under a foreign `HOME`.
 
+## Skill cells
+
+`evals/` has a `grok` host, as a reference column. One probe on 2026-10-23, `grok -p` on grok-4.7 with pstack installed from a tree copy:
+
+- Grok names pstack skills `/how`, `/poteto-help` and so on. `grok plugin install <path>` copies the plugin to `~/.grok/installed-plugins/<id>/`, so later edits to the tree need a reinstall.
+- `/how` took the complex path: three explorers in one turn, then a synthesizer. `spawn_subagent` takes `description`, `prompt` and `background` only, so a skill's read-only flag and model roles cannot be expressed. pstack-all ships no Grok adapter.
+- The free Grok Build usage limit ended that run partway, and blocked the next cell. `evals/golden/grok-how-complex/` keeps the transcript.
+
 ## Not verified
 
-- A model run inside Grok. The check covers discovery, not behavior.
+- A complete Grok model run. The only run was cut short by the usage limit.
 - Install from a git URL. Only local paths were tested.

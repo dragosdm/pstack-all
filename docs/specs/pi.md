@@ -23,13 +23,14 @@ Pi reads the root `package.json`. This is compound-engineering's shape: a Pi pac
 
 ## Subagents
 
-Pi has no built-in subagents. pstack ships a port of Mario Zechner's `badlogic/pi-subagent` in `.pi/extensions/subagent/`, so no other package is needed. `UPSTREAM.md` there names the upstream commit and lists every change.
+Pi has no built-in subagents. pstack ships its own in `.pi/extensions/subagent/`, so no other package is needed.
 
 - The model runs `pstack-subagent spawn|wait|send|stop|list` through the `bash` tool. The extension puts `.pi/bin` on the tool's `PATH`.
 - Each subagent is a full interactive Pi in a tmux session `pstack-subagent-<handle>`, with its own session file under `<agent dir>/pstack-subagents/<handle>/`. The same extension runs inside the child as a bridge: it moves messages from an inbox folder into the session and writes the run state to `metadata.json`.
 - `wait` waits for the child to be idle with an empty inbox, then prints the last assistant message on the session's active branch.
 - `--agent <name>` appends `pstack/agents/<name>.md`, without frontmatter, to the child's system prompt. This replaces `pi.subagents.agents`, which only `pi-subagents` read.
-- `--worktree <ref>` runs the child in a new git worktree on branch `pstack-subagent/<handle>`. `stop` removes the worktree and keeps the branch.
+- `--worktree <ref>` runs the child in a new git worktree at `<repo git dir>/pstack-worktrees/<handle>`, on branch `pstack-subagent/<handle>`. `stop` removes the worktree and keeps the branch.
+- Every child is launched with `--extension <package root>`, so it has pstack's skills, the adapter line and the bridge wherever its folder is.
 - `--tools` is Pi's own allowlist, so `--tools read,grep,find,ls` makes a child read-only.
 - When the parent session quits, its children stop and are relaunched idle when that session resumes. Only `stop` deletes a run.
 - Subagents cannot spawn subagents.
@@ -68,20 +69,29 @@ Set `PI_BIN` to choose the binary. Needs `tmux`.
 
 ## Billed run
 
-2026-10-22, `/skill:how` on a scratch copy of `pi-subagent`, `openai-codex/gpt-6.1-sol` at medium effort, `pi -p --approve`, pstack installed with `pi install -l`. 240 seconds, $0.42 for the parent and four subagents. Evidence in `.verify-runs/20261022T163900Z-pi-how-billed/` (gitignored).
+2026-10-22, `/skill:how` on a scratch project, `openai-codex/gpt-6.1-sol` at medium effort, `pi -p --approve`, pstack installed with `pi install -l`. 240 seconds, $0.42 for the parent and four subagents. Evidence in `.verify-runs/20261022T163900Z-pi-how-billed/` (gitignored).
 
 - The model read `docs/harness/pi.md` first, then the skill's reference files, and ran `pi --list-models` and `pstack-subagent --help`.
 - It took the complex path. It spawned three explorers in one call with `--tools read,bash,grep,find,ls` and do-not-edit briefs, waited for all three, stopped them, then spawned, waited for and stopped one explainer. The answer has the skill's sections with file and line references. No run, tmux session or file change was left behind.
 - `spawn` failed with tmux's `command too long` on the explainer's brief, which held all the explorers' findings. The model condensed the findings by hand and spawned again. Fixed: the brief now goes through `@task.md`, and the check's poteto-agent brief is 40 KB.
 - With no `~/.pi/agent/pstack-models.md`, every role ran on the session model. The model did not say so, as the adapter asks.
 
+## Skill cells
+
+`evals/` runs pstack skills in real Pi sessions, loaded with `pi install -l`, and grades the child metadata the extension writes. Results on `openai-codex/gpt-6.1-sol` at medium effort, 2026-10-23:
+
+- `help-models`, `how-simple`, `how-complex`, `interrogate-staged`, `no-comments-agent` and `setup-gate` pass. `how-*` passed in 2 trials each after the adapter fix below.
+- The `ablate` arm, without `.pi/extensions/pstack.ts`, made no spawn in any trial, so `spawns` and `parallel` are real controls on Pi, not only the adapter read.
+- Before the fix, 4 of 4 `how` trials never said the subagents ran on the session model. The Spawning section of `docs/harness/pi.md` now states the rule with an example, and spawn prints the inherited model. After it, 4 of 4 said so.
+- `swarm-worktree` first hung: worktree children of a project-local install lost the bridge and met a trust prompt. Fixed as above. The mock swarm cell in `check-eval.sh` guards it.
+
 ## Not verified
 
-- More than one billed run. See Billed run. Other skills, `--agent`, `--worktree` and model flags have only run against the mock model.
-- `send`, `--follow-up`, `/pstack-subagent` attach, and suspend and resume on parent quit. They are upstream code with only renames.
+- Explicit model flags chosen by a real model. No cell had a pstack-models.md role line that names a Pi model, so every billed spawn inherited the session model.
+- Results on other Pi models. Every billed cell used `openai-codex/gpt-6.1-sol` at medium effort, with the user's global Pi packages loaded.
+- `send`, `--follow-up`, `/pstack-subagent` attach, and suspend and resume on parent quit. No run exercised them.
 - Install from a git URL. Only local paths were tested. Git must keep the executable bit on `.pi/bin/pstack-subagent` and `subagent.ts`.
 - Pi's mutable `systemPromptOptions`. The extension returns `systemPrompt`, as Pi's bundled `claude-rules.ts` example does, which replaces the prompt for that run with the old prompt plus one line.
-- The upstream license. `badlogic/pi-subagent` has no license file.
 
 ## Gotchas
 

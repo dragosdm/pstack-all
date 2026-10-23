@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "handle": "7560ae",
+  "name": "how-pricing",
+  "requested": {},
+  "parentSessionId": "01a16749-ceab-7118-8371-25fb5c03a876",
+  "parentSessionFile": "/home/user/Work/internal/pstack-all/.verify-runs/20261023T053742Z-r2-pi-how/how-complex.pi.post.2/parent.jsonl",
+  "tmuxSession": "pstack-subagent-7560ae",
+  "runDir": "/home/user/.pi/agent/pstack-subagents/7560ae",
+  "sessionFile": "/home/user/.pi/agent/pstack-subagents/7560ae/session.jsonl",
+  "cwd": "/work/billing-service",
+  "provider": "openai-codex",
+  "model": "gpt-6.1-sol",
+  "thinking": "medium",
+  "launchArgs": [
+    "--tools",
+    "read,bash,grep,find,ls"
+  ],
+  "state": "exited",
+  "hasStarted": true,
+  "createdAt": "2026-10-23T05:44:43.402Z",
+  "updatedAt": "2026-10-23T05:46:36.802Z",
+  "childSessionId": "01a1674a-4783-7755-84ae-9b713e139509"
+}

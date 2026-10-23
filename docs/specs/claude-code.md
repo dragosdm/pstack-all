@@ -62,9 +62,18 @@ Upstream's generated tree at `eb4db2b`, installed the same way, lists the same 5
 
 Set `CLAUDE_BIN` to choose the binary.
 
+## Skill cells
+
+`evals/` runs pstack skills in `claude -p --plugin-dir <tree> --setting-sources project,local` and grades the parent's `Agent` calls. Results on Sonnet 5.5, 2026-10-23, one trial unless noted:
+
+- `help-models` (2 trials), `interrogate-staged`, `swarm-worktree`, `no-comments-agent`, `setup-gate` and `models-rule` pass. `interrogate` spawned reviewer A as `opus`/`xhigh` and reviewer B with no model, and the synthesis says B ran on the session model. `models-rule` shows a project `.claude/rules/pstack-models.md` overrides the role defaults.
+- The `ablate` arm, with the hook removed, never read the adapter, and `help-models` then answered with Cursor paths, in 2 of 2 trials.
+- `~/.claude/rules/` is not loaded under `--setting-sources project,local`, so cells get the role defaults.
+- `how-simple` and `how-complex` spawn nothing on Sonnet (4 trials), and Opus takes the simple path for `how-complex` (1 trial). The ablate and upstream arms behave the same, and native Cursor fans out three explorers on the same fixture. So this is Claude's path choice, not the adapter.
+- Headless Claude keeps running while background subagents report, with one `result` per turn. The last one is the answer.
+
 ## Not verified
 
-- Install from the GitHub marketplace URL. Only local paths were tested, and nothing is pushed.
-- A pstack skill run end to end in Claude Code. The runtime probe covers registration and the hook, not skill behavior.
-- Whether the session-wide hook line changes behavior compared with upstream's per-skill line. Both tell the model to read the same adapter before it follows a pstack skill.
+- Install from the GitHub marketplace URL. Only local paths were tested.
+- Whether the session-wide hook line changes behavior compared with upstream's per-skill line. One `upstream` cell of `how-simple` behaved like the post arm. One trial is not enough to say they match.
 - Windows. The hook is a POSIX `echo` command.

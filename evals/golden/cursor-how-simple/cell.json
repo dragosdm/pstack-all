@@ -1,0 +1,19 @@
+{
+  "trial": 1,
+  "arm": "post",
+  "process": {
+    "exit": 0,
+    "timedOut": false,
+    "seconds": null
+  },
+  "golden": true,
+  "scenario": "how-simple",
+  "host": "cursor",
+  "pluginRoot": "/work/pstack-all",
+  "project": "/work/invoice-service",
+  "skillsDir": "/work/pstack-all/pstack/skills",
+  "adapterPath": null,
+  "prompt": "/how how does computeTotal round amounts in each currency?",
+  "models": null,
+  "source": "probe run 2026-10-23, cursor-agent -p --trust --plugin-dir, Auto"
+}

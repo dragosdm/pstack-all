@@ -1,0 +1,18 @@
+{
+  "files": {
+    "cell.json": "8ef0b7b8b2da0609fb7182992f7e67eb49c593982865115d0a4aced6e072a517",
+    "children/0a060e/metadata.json": "3793f501794f88705bb68573e1bfe3de1662c8b667ca42b0289654e239b83211",
+    "children/0a060e/session.jsonl": "b47a0489e8d67a0ab5493b8b50794b5087ed157eba76eaefdacb5062809c13e0",
+    "children/35044c/metadata.json": "540445ca826309a288f957d1a3512e77903c03393f572a41792db966f9427cce",
+    "children/35044c/session.jsonl": "1e5f145b8bcb5b0057fa16d8c0ef09c90c41b205121cc2944c51dbf2cb0c5db6",
+    "children/7560ae/metadata.json": "c9b5aa197c5fba36ce983e420e943b24aea04fbbe6b21fccd7d7f33aaf6ab511",
+    "children/7560ae/session.jsonl": "eef9ad906dd97e9bc57d55bb82e7bd18502487dded53203f3cf9d74f2a538aa8",
+    "children/cfa053/metadata.json": "b4eb455f0c5e5e35fdd570879099b07565066e6a228fe94cadfb3d0a6f25cea9",
+    "children/cfa053/session.jsonl": "27d3b9a87f691afde9a8a9a286097e3b47f94fce394be1147a8b8218fe74126e",
+    "expected.json": "6fe97bdfba2ed6b70063a61e2f31ce9f1ee69d1b7e0eef2d9b4e2c0af5a40cbe",
+    "git-status.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "leftover.json": "ca75868ed0f7bec3345d96ffa522649b2219fb4def0600bee070cea4bc9ba8e1",
+    "parent.jsonl": "ce3ea21dcef2009ceb7621f6bfe491c6debda53e64d47ff6dfc302b31631d0f3",
+    "rules.json": "a344b81ddcd45bb29b2c5ed37771d663056ccfb0ec62caaf4e3b51471d4d7acc"
+  }
+}

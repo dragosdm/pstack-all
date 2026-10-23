@@ -1,0 +1,5 @@
+{
+  "why": "Headless Claude ended three turns: two progress notes while the background reviewers ran, then the synthesis. The last result is the answer. Reviewers A (opus/xhigh) and B (model omitted, its grok default has no Claude model) started in one message as Explore, and the synthesis says B ran on the session model. The staged change was left as it was.",
+  "ok": true,
+  "verdicts": { "loaded": "pass", "adapter": "pass", "spawns": "pass", "parallel": "pass", "readonly": "pass", "modelsValid": "pass", "announced": "pass", "stagedIntact": "pass", "rulesUntouched": "pass" }
+}

@@ -1,0 +1,5 @@
+{
+  "why": "A real Pi run on billing-service after the adapter fix: adapter read, three read-only explorers started together, the explainer after they finished, every child stopped, workspace and rule files untouched. No spawn named a model and the answer says the subagents ran on the session model.",
+  "ok": true,
+  "verdicts": { "loaded": "pass", "adapter": "pass", "spawns": "pass", "parallel": "pass", "readonly": "pass", "modelsValid": "pass", "announced": "pass", "clean": "pass", "rulesUntouched": "pass", "noLeftover": "pass" }
+}
