@@ -9,10 +9,11 @@ export const cursor = {
   arms: ["post", "ref"],
   adapter: () => null,
 
+  // Cursor cells are read-only how scenarios: commands are not auto-approved, and any that run stay in Cursor's sandbox.
   launch(cell, opts) {
     return {
       argv: [
-        "cursor-agent", "-p", "--trust", "--force", "--output-format", "stream-json",
+        "cursor-agent", "-p", "--trust", "--sandbox", "enabled", "--output-format", "stream-json",
         "--plugin-dir", join(cell.pluginRoot, "pstack"), ...(opts.cursorModel ? ["--model", opts.cursorModel] : []), cell.prompt,
       ],
       stdin: null,

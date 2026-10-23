@@ -24,5 +24,5 @@ A user never runs cells. A cell is the user's session, `/pstack:<skill>` in Clau
 ## Gotchas
 
 - Tiny fixtures let a model skip fan-out ("I read it directly and skipped the subagents"). How scenarios use `billing-service` for that reason.
-- Claude cells skip user settings, so `~/.claude/rules/pstack-models.md` is not loaded and the role defaults apply. Unlike `drive-claude.sh`, they allow `Agent`, edits inside the project and git/node Bash, with `--permission-mode acceptEdits`, and record any other call under `denied`. Pi cells load your global Pi packages and context files. Cursor cells read your user rules.
+- Claude cells skip user settings, so `~/.claude/rules/pstack-models.md` is not loaded and the role defaults apply. Unlike `drive-claude.sh`, they allow `Agent`, edits inside the project and named git subcommands, with `--permission-mode acceptEdits`, and record any other call under `denied`. Pi cells load your global Pi packages and context files. Cursor cells read your user rules.
 - Grok cells install into `~/.grok` for the run and uninstall afterwards, and refuse to start if a `pstack` plugin is already installed. The free Grok Build tier hit its usage limit during the first `how` probe and blocked the next cell.
