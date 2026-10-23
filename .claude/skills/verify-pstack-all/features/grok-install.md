@@ -20,10 +20,12 @@ Preconditions:
 
 - **Install.** Run `launch.sh grok`. `grok-install.log` shows the install succeeded.
 - **Root manifest.** `doctor.sh` prints `grok loaded the root plugin.json (pstack v<version>)`. `grok-details.txt` has that line with no `(subdir: pstack)`.
-- **Inventory.** `grok-inventory.json` lists 57 skill names and the agents `comment-sicko` and `poteto-agent`.
+- **Inventory.** `grok-inventory.json` lists 57 skill names and the agents `pstack:comment-sicko` and `pstack:poteto-agent`.
 
 ## Gotchas
 
 - Grok reads `plugin.json`, then `.grok-plugin/plugin.json`, then `.claude-plugin/plugin.json`. Without the root file it silently loads the Claude manifest, and the version line still says `pstack v<version>`. Compare `grok-details.txt` against the root `plugin.json`, not against "any pstack".
 - The `mise` shim for `grok` fails under a foreign `HOME`. The helpers resolve the real binary with `mise which grok`, or `GROK_BIN` when set.
-- Session behavior in Grok is not driven here. Grok model runs bill a different account. Report it as skipped.
+- The install is a copy, at `<HOME>/.grok/installed-plugins/<id>/`. `doctor.sh` checks only the version line for Grok, so it does not catch a stale copy. Relaunch after editing the repo.
+- Users type bare names in Grok, such as `/how` and `/poteto-help`, not `/pstack:<name>`.
+- This skill drives no Grok session. The `grok` cells host does, as a reference column ([Graded skill cells](./cells.md)). It installs into your real `~/.grok` for the run, uninstalls afterwards, and refuses to start if a `pstack` plugin is already installed. The free Grok Build tier stops runs once its usage limit is reached.

@@ -17,14 +17,14 @@ A Claude Code user adds this repo as a marketplace, installs `pstack`, and gets 
 
 Preconditions:
 
-- `doctor.sh <id>` is all `OK` for a run launched with `claude` or `all`.
+- `doctor.sh <id>` is all `OK` for a run launched with `claude` or `all`. Doctor also requires the Claude login, which only a drive needs. A logged-out machine fails doctor even when the install is fine.
 
-- **Add and install.** Run `launch.sh claude`. `claude-install.log` ends with `Successfully installed plugin: pstack@pstack-all`.
-- **Inventory.** Read `claude-details.txt`. It shows `pstack <version>`, `Skills (57)`, and `Hooks (1)  SessionStart`.
+- **Add and install.** Run `launch.sh claude`. `claude-install.log` contains `Successfully installed plugin: pstack@pstack-all (scope: user)`.
+- **Inventory.** Read `claude-details.txt`. It shows `pstack <version>`, `Skills (57)`, and a line starting `Hooks (1)  SessionStart`.
 - **Installed bytes.** `doctor.sh` reports `claude install matches the working tree`.
 
 ## Gotchas
 
 - `claude-details.txt` shows `Agents (0)`. That is expected: `details` counts only a default `agents/` folder, and this manifest lists agent files. Prove agents with [claude-agents.md](./claude-agents.md).
-- The marketplace and the plugin are added from a local path. Install from GitHub (`dragosdm/pstack-all`) is unverified until the repo is pushed.
-- A user who also has `pstack@cursor-plugins` gets the same `pstack:` names twice. The drive avoids this with `--setting-sources project,local`. Real users must uninstall one.
+- The marketplace and the plugin are added from a local path. Install from GitHub (`dragosdm/pstack-all`) is unverified, although the repo is pushed.
+- A user who also has `pstack@cursor-plugins` gets the same `pstack:` names twice. `launch.sh` avoids it with a throwaway `CLAUDE_CONFIG_DIR`, and sessions with `--setting-sources project,local`. Real users must uninstall one.

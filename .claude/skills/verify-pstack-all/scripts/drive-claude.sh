@@ -29,8 +29,9 @@ jq -r 'select(.type == "assistant") | .message.content[]? | select(.type == "too
 jq -r 'select(.type == "system" and .subtype == "hook_response") | "\(.hook_name): \(.output)"' \
   "$out/transcript.jsonl" >"$out/hooks.txt"
 jq -c 'select(.type == "result") | .permission_denials[]?' "$out/transcript.jsonl" >"$out/denied.txt"
-jq -r 'select(.type == "result") | .result // empty' "$out/transcript.jsonl" >"$out/answer.md"
-cost="$(jq -r 'select(.type == "result") | .total_cost_usd // empty' "$out/transcript.jsonl")"
+# A session whose background subagents report back ends one result per turn; the last one is the answer and the total cost.
+jq -rs 'map(select(.type == "result")) | last | .result // empty' "$out/transcript.jsonl" >"$out/answer.md"
+cost="$(jq -rs 'map(select(.type == "result")) | last | .total_cost_usd // empty' "$out/transcript.jsonl")"
 echo "drive: exit=$code cost_usd=${cost:-?} evidence=$out"
 echo "drive: init $(cat "$out/init.json")"
 echo "drive: $(wc -l <"$out/tools.txt") tool calls, $(wc -l <"$out/denied.txt") denied, answer $(wc -c <"$out/answer.md") bytes"

@@ -12,17 +12,13 @@ pstack ships two subagents, `poteto-agent` and `comment-sicko`. In Claude Code t
 - Run `/pstack:poteto-mode` on a task. It delegates to `pstack:poteto-agent`.
 - Run `/pstack:no-comments` on changed code. It spawns `pstack:comment-sicko`.
 
-## Driving it with drive-claude.sh
+## Driving it with drive-claude.sh and cells
 
-Preconditions:
-
-- `doctor.sh <id>` is all `OK`.
-
-- **Registered.** Any drive's `init.json` lists `"agents":["pstack:comment-sicko","pstack:poteto-agent"]`. This is the cheapest proof and comes free with every session.
-- **Spawn.** Not yet driven. A candidate is a scratch git repo with one commented change in the instance dir, then `/pstack:no-comments` with `--allowedTools` widened to `Agent`. Proof would be an `Agent` tool call with `subagent_type` `pstack:comment-sicko` in `tools.txt`.
+- **Registered.** Any drive's `init.json` lists `"agents":["pstack:comment-sicko","pstack:poteto-agent"]`. This is the cheapest proof and comes free with every session. `doctor.sh <id>` must be all `OK` first.
+- **Spawn.** `drive-claude.sh` grants only `Read Glob Grep`, so it can't spawn. The `no-comments-agent` cell can: `node evals/cells.mjs run --scenario no-comments-agent --host claude --trials 2`. It sets up a fixture repo with a comment-heavy file and allows `Agent` and edits ([Graded skill cells](./cells.md)). Proof is `"agent":"pstack:comment-sicko"` in each cell's `run.json` spawns, the raw `subagent_type`. Read that, not `grade.json`, because the `agent` criterion strips the `pstack:` prefix.
 
 ## Gotchas
 
 - `claude plugin details` reports `Agents (0)` for this plugin. Use `init.json`, not `details`.
 - A user-level `pstack@cursor-plugins` registers the same names. Only a drive with `--setting-sources project,local` proves that this repo supplied them.
-- The spawn journey needs a scratch repo and wider tools. `drive-claude.sh` grants only `Read Glob Grep` today. Add a flag before you drive it. Don't weaken the proof to `agents-registered`.
+- Two cell trials (2026-10-23, `.verify-runs/20261023T103649Z-maint-claude-agents/`) each spawned `pstack:comment-sicko` on Sonnet, as did an earlier single trial. No run has spawned `pstack:poteto-agent`, and no scenario covers `/pstack:poteto-mode`. Don't weaken the spawn proof to `agents-registered`.

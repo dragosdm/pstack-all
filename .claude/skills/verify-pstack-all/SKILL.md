@@ -1,11 +1,11 @@
 ---
 name: verify-pstack-all
-description: Drive pstack-all the way a user does, by installing it into Claude Code or Grok CLI from this repo and running a pstack skill in a real session, and capture proof. Use when a change to the harness entry files (.claude-plugin/, plugin.json, .cursor-plugin/), the adapter hook, or scripts/sync-manifests.mjs needs evidence that pstack still installs, registers, and behaves in a harness.
+description: Drive pstack-all the way a user does, by installing it into Claude Code, Grok CLI or Pi from this repo and running pstack skills in real sessions (helper drives for Claude, graded cells for Claude, Pi, Cursor and Grok), and capture proof. Use when a change to the harness entry files (.claude-plugin/, plugin.json, .cursor-plugin/, package.json), the adapter hook, .pi/extensions/, docs/harness/pi.md, or scripts/sync-manifests.mjs needs evidence that pstack still installs, registers, and behaves in a harness.
 ---
 
 # Verify pstack-all
 
-pstack-all has no server. Its users touch a harness CLI: they add this repo as a marketplace, install `pstack`, and type `/pstack:<skill>`. This skill drives that path in throwaway config dirs and in real model sessions, and keeps the evidence.
+pstack-all has no server. Its users touch a harness CLI: they add this repo as a marketplace or package, install `pstack`, and type a skill command (`/pstack:<skill>` in Claude Code, `/skill:<skill>` in Pi, `/<skill>` in Cursor and Grok). This skill drives that path in throwaway config dirs and in real model sessions, and keeps the evidence. Graded skill cells (`evals/cells.mjs`) drive the same path across harnesses. See the features map.
 
 `scripts/check.sh` proves the files: unchanged `pstack/`, manifest drift, validators, and install inventory. This skill proves the user path. Run both. A green check does not prove a session works.
 
@@ -24,7 +24,7 @@ Launch creates `${TMPDIR:-/tmp}/verify-pstack-all.XXXXXX`, the instance. It then
 
 It is ready when the last line reads `READY run=<id> evidence=<dir>`. Any `launch: FAIL` line names the log to read. A launch takes about 20 seconds and needs no network.
 
-Each run has its own config dir and HOME, so runs can go in parallel. Your real `~/.claude` and `~/.grok` are never written.
+Each run has its own config dir and HOME, so runs can go in parallel. These helpers never write your real `~/.claude` or `~/.grok`. Grok cells are the exception: they install into `~/.grok` for the run and uninstall afterwards.
 
 ## Doctor
 
@@ -40,7 +40,7 @@ Read-only. Every line must be `OK`, otherwise exit 1. It checks:
 - `claude auth status` is logged in
 - Grok loaded the root `plugin.json` (`pstack v<version>`, with no `(subdir: pstack)`)
 
-A stale install means you edited the repo after launch. Clean up and relaunch. Never reinstall into an old instance.
+A stale install means you edited the repo after launch. Doctor detects it for Claude only. For Grok it checks only the version line, so relaunch after any edit. Clean up and relaunch. Never reinstall into an old instance.
 
 ## Drive
 
@@ -71,7 +71,7 @@ Everything lands in `.verify-runs/<run-id>/`, which is gitignored:
 - `repo-state.txt`: HEAD and `git status`
 - `*-install.log` and `*-details.txt`
 - `grok-inventory.json`
-- one `drive-<name>/` per session: `prompt.txt`, `transcript.jsonl` (the full stream-json), `init.json` (loaded plugins, pstack agents, pstack command count), `hooks.txt` (SessionStart output), `tools.txt` (every tool call), `denied.txt` (permission denials), `answer.md`
+- one `drive-<name>/` per session: `prompt.txt`, `transcript.jsonl` (the full stream-json), `init.json` (loaded plugins, pstack agents, pstack command count), `hooks.txt` (SessionStart output), `tools.txt` (every tool call), `denied.txt` (permission denials), `answer.md` (the last result), `stderr.txt`
 
 Proof standards:
 
