@@ -53,8 +53,9 @@ const HARNESSES = [
     }),
   },
   {
-    // A Pi package is a package.json with a pi key. The subagent extension reads pstack/agents itself.
-    harness: "pi",
+    // A Pi package is a package.json with a pi key; the subagent extension reads pstack/agents itself. opencode loads
+    // the plugin from main.
+    harness: "pi, opencode",
     file: "package.json",
     render: () => {
       const { $schema, skills, agents, ...meta } = base;
@@ -62,6 +63,7 @@ const HARNESSES = [
         ...meta,
         private: true,
         type: "module",
+        main: "index.js",
         keywords: [...meta.keywords, "pi-package"],
         pi: {
           extensions: ["./.pi/extensions/pstack.ts", "./.pi/extensions/subagent/index.ts"],

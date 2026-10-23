@@ -20,6 +20,7 @@
   ],
   "private": true,
   "type": "module",
+  "main": "index.js",
   "pi": {
     "extensions": [
       "./.pi/extensions/pstack.ts",

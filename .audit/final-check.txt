@@ -1,4 +1,4 @@
-commit ad62c521451974e6e2ab3b70057572a7848ae1ef +uncommitted 26 paths, index-tree-of-pstack d08bf3a76c8f3bdaeb9af65c98344c85a304fb63 at 2026-10-23T10:40:41Z
+commit 408762ee920e56c7619a561e3e4be3c520c19ef0 +uncommitted 14 paths, index-tree-of-pstack d08bf3a76c8f3bdaeb9af65c98344c85a304fb63 at 2026-10-23T11:35:09Z
 === base
 upstream: PASS /home/dragos/.claude/plugins/marketplaces/cursor-plugins eb4db2b55b2b7dec3d9282754cddf0a56bf4ff10:pstack is d08bf3a76c8f3bdaeb9af65c98344c85a304fb63
 integrity: PASS pstack/ tree d08bf3a76c8f3bdaeb9af65c98344c85a304fb63 == lock tree for eb4db2b55b2b7dec3d9282754cddf0a56bf4ff10:pstack
@@ -13,7 +13,7 @@ manifests: ok plugin.json (grok-cli)
 manifests: ok .cursor-plugin/marketplace.json (cursor, grok-bot)
 manifests: ok .claude-plugin/plugin.json (claude-code)
 manifests: ok .claude-plugin/marketplace.json (claude-code)
-manifests: ok package.json (pi)
+manifests: ok package.json (pi, opencode)
 === catalog
 catalog: upstream validator and schemas match eb4db2b55b2b7dec3d9282754cddf0a56bf4ff10
 catalog: PASS upstream validate-plugins.mjs: All plugins validated successfully.
@@ -37,8 +37,21 @@ pi: get_commands lists 57 skills from pstack/skills, the same names as on disk
 pi: the system prompt of a print run tells the model to read docs/harness/pi.md
 pi: the system prompt offers the model setup-pstack, every pstack skill without disable-model-invocation
 pi: a print run spawned comment-sicko read-only and poteto-agent in a worktree through pstack-subagent, and waited for both
-pi: stop removed both runs, their tmux sessions and the worktree, and kept branch pstack-subagent/43dac9
+pi: stop removed both runs, their tmux sessions and the worktree, and kept branch pstack-subagent/543d42
 pi: PASS repo root installs as a Pi package with every pstack skill, the adapter extension, and working subagents
+=== opencode
+opencode: opencode v2.1.4, the repo root is a local plugin in a throwaway XDG config
+opencode: /api/plugin lists pstack active, loaded from index.js
+opencode: /api/skill lists 57 skills from pstack/skills, the same names as on disk
+opencode: autoinvoke is false for the 56 skills with disable-model-invocation: true, and only those
+opencode: /api/command has pstack:<name> for every skill
+opencode: /api/agent has comment-sicko and poteto-agent as subagents that cannot ask the user or spawn
+opencode: the parent's system prompt tells the model to read docs/harness/opencode.md
+opencode: <available_skills> offers the model setup-pstack, every pstack skill without disable-model-invocation
+opencode: the comment-sicko child got '# Comment Sicko' and the adapter line, and has no subagent tool
+opencode: the poteto-agent child got '# Poteto subagent' and the adapter line, and has no subagent tool
+opencode: /pstack:how asks the model to load how, and the skill tool returns the SKILL.md body
+opencode: PASS repo root loads as an opencode plugin with every pstack skill, pstack:<name> commands, both agents, and the adapter line
 === eval
 eval: cells: golden claude-help-models grades as recorded (6 criteria, ok=true)
 eval: cells: golden claude-how-simple grades as recorded (8 criteria, ok=true)
@@ -52,4 +65,5 @@ eval: a scripted wrong run (no adapter read, serial writable spawns, a child lef
 eval: two --worktree workers of a project-local install start together, finish and are stopped
 eval: PASS scenario catalog, golden transcripts, and the Pi cell pipeline grade as expected
 ===
-check: PASS base manifests catalog grok claude pi eval
+check: PASS base manifests catalog grok claude pi opencode eval
+exit=0

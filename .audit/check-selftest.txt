@@ -58,7 +58,7 @@ claude: FAIL validate --strict .claude-plugin/marketplace.json
 check: FAIL manifests claude (exit=1)
 ### Pi package loads only one skill
 break: jq '.pi.skills = ["./pstack/skills/how"]' package.json >m && mv m package.json
-manifests: DRIFT package.json (pi) differs from pstack/plugin.json
+manifests: DRIFT package.json (pi, opencode) differs from pstack/plugin.json
 manifests: FAIL run `node scripts/sync-manifests.mjs` and commit the result
 pi: FAIL get_commands lists pstack skills [how], pstack/skills has [architect,arena,automate-me,benchmark-checklist,blast-radius,bro,correct,create-formal-verification-skill,create-verification-skill,figure-it-out,how,interrogate,in-your-own-words,ketchup,maintain-formal-verification-skill,maintain-verification-skill,make-bot-ui,no-comments,poteto-help,poteto-mode,principle-attack-the-premise,principle-boundary-discipline,principle-build-the-lever,principle-encode-lessons-in-structure,principle-exhaust-the-design-space,principle-experience-first,principle-explain-the-number,principle-fix-root-causes,principle-foundational-thinking,principle-guard-the-context-window,principle-laziness-protocol,principle-make-operations-idempotent,principle-migrate-callers-then-delete-legacy-apis,principle-minimize-reader-load,principle-model-the-domain,principle-never-block-on-the-human,principle-outcome-oriented-execution,principle-prove-it-works,principle-redesign-from-first-principles,principle-separate-before-serializing-shared-state,principle-sequence-verifiable-units,principle-subtract-before-you-add,principle-test-behavior-not-implementation,principle-type-system-discipline,recall,reflect,setup-pstack,sharpen,show-me-your-work,statechart,swarm,tdd,teach,technical-writing,typescript-best-practices,unslop,why]
 pi: FAIL the system prompt offers [], want [setup-pstack]
@@ -66,7 +66,7 @@ eval: FAIL the scripted swarm run failed [loaded]
 check: FAIL manifests pi eval (exit=1)
 ### Pi package.json removed
 break: rm package.json
-manifests: DRIFT package.json (pi) is missing
+manifests: DRIFT package.json (pi, opencode) is missing
 manifests: FAIL run `node scripts/sync-manifests.mjs` and commit the result
 pi: FAIL get_commands lists pstack skills [], pstack/skills has [architect,arena,automate-me,benchmark-checklist,blast-radius,bro,correct,create-formal-verification-skill,create-verification-skill,figure-it-out,how,interrogate,in-your-own-words,ketchup,maintain-formal-verification-skill,maintain-verification-skill,make-bot-ui,no-comments,poteto-help,poteto-mode,principle-attack-the-premise,principle-boundary-discipline,principle-build-the-lever,principle-encode-lessons-in-structure,principle-exhaust-the-design-space,principle-experience-first,principle-explain-the-number,principle-fix-root-causes,principle-foundational-thinking,principle-guard-the-context-window,principle-laziness-protocol,principle-make-operations-idempotent,principle-migrate-callers-then-delete-legacy-apis,principle-minimize-reader-load,principle-model-the-domain,principle-never-block-on-the-human,principle-outcome-oriented-execution,principle-prove-it-works,principle-redesign-from-first-principles,principle-separate-before-serializing-shared-state,principle-sequence-verifiable-units,principle-subtract-before-you-add,principle-test-behavior-not-implementation,principle-type-system-discipline,recall,reflect,setup-pstack,sharpen,show-me-your-work,statechart,swarm,tdd,teach,technical-writing,typescript-best-practices,unslop,why]
 pi: FAIL pi reported errors at startup
@@ -81,11 +81,11 @@ eval: FAIL the scripted swarm run failed [adapter]
 check: FAIL pi eval (exit=1)
 ### Pi adapter removed
 break: rm docs/harness/pi.md
-pi: FAIL the system prompt names '/tmp/tmp.BYZ0eXVC5L/repo/docs/harness/pi.md', not docs/harness/pi.md
+pi: FAIL the system prompt names '/tmp/tmp.V5vkZ2RAEx/repo/docs/harness/pi.md', not docs/harness/pi.md
 check: FAIL pi (exit=1)
 ### Pi subagent extension dropped from the package
 break: jq '.pi.extensions |= .[:1]' package.json >m && mv m package.json
-manifests: DRIFT package.json (pi) differs from pstack/plugin.json
+manifests: DRIFT package.json (pi, opencode) differs from pstack/plugin.json
 manifests: FAIL run `node scripts/sync-manifests.mjs` and commit the result
 pi: FAIL pstack-subagent spawn, want [CHILD agent=comment-sicko tools=find,grep,ls,read worktree=no
 pi: FAIL stop left [] or lost the worktree branch ''
@@ -98,8 +98,36 @@ pi: FAIL pstack-subagent spawn, want [CHILD agent=comment-sicko tools=find,grep,
 check: FAIL pi (exit=1)
 ### Pi subagent stop leaves the worktree
 break: sed -i 's/"worktree", "remove"/"worktree", "list"/' .pi/extensions/subagent/shared.ts
-pi: FAIL stop left [/tmp/tmp.IeAyB7r8M6/repo/.git/pstack-worktrees/157185 24bbc5a [pstack-subagent/157185]] or lost the worktree branch 'pstack-subagent/157185'
+pi: FAIL stop left [/tmp/tmp.upA0x1wp2K/repo/.git/pstack-worktrees/34f57f ead0797 [pstack-subagent/34f57f]] or lost the worktree branch 'pstack-subagent/34f57f'
 check: FAIL pi (exit=1)
+### opencode index.js removed
+break: rm index.js
+opencode: FAIL /api/plugin lists pstack as []
+check: FAIL opencode (exit=1)
+### opencode adapter removed
+break: rm docs/harness/opencode.md
+opencode: FAIL the parent's system prompt names '/tmp/tmp.V5vkZ2RAEx/repo/docs/harness/opencode.md', not docs/harness/opencode.md
+check: FAIL opencode (exit=1)
+### opencode offers every skill to the model
+break: sed -i 's/autoinvoke: meta\["disable-model-invocation"\] !== true/autoinvoke: true/' .opencode/plugins/pstack.js
+opencode: FAIL autoinvoke is false for [], want [architect,arena,automate-me,benchmark-checklist,blast-radius,bro,correct,create-formal-verification-skill,create-verification-skill,figure-it-out,how,interrogate,in-your-own-words,ketchup,maintain-formal-verification-skill,maintain-verification-skill,make-bot-ui,no-comments,poteto-help,poteto-mode,principle-attack-the-premise,principle-boundary-discipline,principle-build-the-lever,principle-encode-lessons-in-structure,principle-exhaust-the-design-space,principle-experience-first,principle-explain-the-number,principle-fix-root-causes,principle-foundational-thinking,principle-guard-the-context-window,principle-laziness-protocol,principle-make-operations-idempotent,principle-migrate-callers-then-delete-legacy-apis,principle-minimize-reader-load,principle-model-the-domain,principle-never-block-on-the-human,principle-outcome-oriented-execution,principle-prove-it-works,principle-redesign-from-first-principles,principle-separate-before-serializing-shared-state,principle-sequence-verifiable-units,principle-subtract-before-you-add,principle-test-behavior-not-implementation,principle-type-system-discipline,recall,reflect,sharpen,show-me-your-work,statechart,swarm,tdd,teach,technical-writing,typescript-best-practices,unslop,why]
+opencode: FAIL <available_skills> offers pstack skills [architect,arena,automate-me,benchmark-checklist,blast-radius,bro,correct,create-formal-verification-skill,create-verification-skill,figure-it-out,how,interrogate,in-your-own-words,ketchup,maintain-formal-verification-skill,maintain-verification-skill,make-bot-ui,no-comments,poteto-help,poteto-mode,principle-attack-the-premise,principle-boundary-discipline,principle-build-the-lever,principle-encode-lessons-in-structure,principle-exhaust-the-design-space,principle-experience-first,principle-explain-the-number,principle-fix-root-causes,principle-foundational-thinking,principle-guard-the-context-window,principle-laziness-protocol,principle-make-operations-idempotent,principle-migrate-callers-then-delete-legacy-apis,principle-minimize-reader-load,principle-model-the-domain,principle-never-block-on-the-human,principle-outcome-oriented-execution,principle-prove-it-works,principle-redesign-from-first-principles,principle-separate-before-serializing-shared-state,principle-sequence-verifiable-units,principle-subtract-before-you-add,principle-test-behavior-not-implementation,principle-type-system-discipline,recall,reflect,setup-pstack,sharpen,show-me-your-work,statechart,swarm,tdd,teach,technical-writing,typescript-best-practices,unslop,why], want [setup-pstack]
+check: FAIL opencode (exit=1)
+### opencode commands lose the pstack: prefix
+break: sed -i 's/name: `pstack:${skill.id}`/name: skill.id/' .opencode/plugins/pstack.js
+opencode: FAIL /api/command has pstack commands [], want [architect,arena,automate-me,benchmark-checklist,blast-radius,bro,correct,create-formal-verification-skill,create-verification-skill,figure-it-out,how,interrogate,in-your-own-words,ketchup,maintain-formal-verification-skill,maintain-verification-skill,make-bot-ui,no-comments,poteto-help,poteto-mode,principle-attack-the-premise,principle-boundary-discipline,principle-build-the-lever,principle-encode-lessons-in-structure,principle-exhaust-the-design-space,principle-experience-first,principle-explain-the-number,principle-fix-root-causes,principle-foundational-thinking,principle-guard-the-context-window,principle-laziness-protocol,principle-make-operations-idempotent,principle-migrate-callers-then-delete-legacy-apis,principle-minimize-reader-load,principle-model-the-domain,principle-never-block-on-the-human,principle-outcome-oriented-execution,principle-prove-it-works,principle-redesign-from-first-principles,principle-separate-before-serializing-shared-state,principle-sequence-verifiable-units,principle-subtract-before-you-add,principle-test-behavior-not-implementation,principle-type-system-discipline,recall,reflect,setup-pstack,sharpen,show-me-your-work,statechart,swarm,tdd,teach,technical-writing,typescript-best-practices,unslop,why]
+check: FAIL opencode (exit=1)
+### opencode agent body hook disabled
+break: sed -i 's/if (agent) event.system.push/if (false) event.system.push/' .opencode/plugins/pstack.js
+opencode: FAIL the comment-sicko child got {"body":false,"adapter":true,"subagent":false,"seen":true}
+opencode: FAIL the poteto-agent child got {"body":false,"adapter":true,"subagent":false,"seen":true}
+check: FAIL opencode (exit=1)
+### opencode delegates may ask and spawn
+break: sed -i 's/draft.permissions.push(...delegateDenies)//' .opencode/plugins/pstack.js
+opencode: FAIL /api/agent subagents with the question and subagent denies are []
+opencode: FAIL the comment-sicko child got {"body":true,"adapter":true,"subagent":true,"seen":true}
+opencode: FAIL the poteto-agent child got {"body":true,"adapter":true,"subagent":true,"seen":true}
+check: FAIL opencode (exit=1)
 ### eval grader ignores Pi --tools
 break: sed -i 's/readonly: tools !== null \&\& /readonly: true || /' evals/hosts/pi.mjs
 eval: FAIL the scripted wrong run failed [adapter,spawns,parallel,announced,noLeftover], want [adapter,spawns,parallel,readonly,announced,noLeftover]
