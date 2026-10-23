@@ -78,7 +78,7 @@ pi: FAIL the system prompt names 'no adapter', not docs/harness/pi.md
 check: FAIL pi (exit=1)
 ### Pi adapter removed
 break: rm docs/harness/pi.md
-pi: FAIL the system prompt names '/tmp/tmp.GQX7itSE3w/repo/docs/harness/pi.md', not docs/harness/pi.md
+pi: FAIL the system prompt names '/tmp/tmp.q2ErnZNCE3/repo/docs/harness/pi.md', not docs/harness/pi.md
 check: FAIL pi (exit=1)
 ### Pi subagent extension dropped from the package
 break: jq '.pi.extensions |= .[:1]' package.json >m && mv m package.json
@@ -93,6 +93,6 @@ pi: FAIL pstack-subagent spawn, want [CHILD agent=comment-sicko tools=find,grep,
 check: FAIL pi (exit=1)
 ### Pi subagent stop leaves the worktree
 break: sed -i 's/"worktree", "remove"/"worktree", "list"/' .pi/extensions/subagent/shared.ts
-pi: FAIL stop left [/tmp/tmp.P8haNgbh0d/agent/pstack-subagents/c09a14/worktree 973a8c7 [pstack-subagent/c09a14] prunable] or lost the worktree branch 'pstack-subagent/c09a14'
+pi: FAIL stop left [/tmp/tmp.oYtxTr25Z3/agent/pstack-subagents/103275/worktree 92f5567 [pstack-subagent/103275] prunable] or lost the worktree branch 'pstack-subagent/103275'
 check: FAIL pi (exit=1)
 selftest: every break failed its layer

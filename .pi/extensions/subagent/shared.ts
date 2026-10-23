@@ -108,7 +108,11 @@ export function readMetadata(runDir: string): RunMetadata | undefined {
 			(metadata.name !== undefined && !isValidRunName(metadata.name)) ||
 			typeof metadata.tmuxSession !== "string" ||
 			typeof metadata.sessionFile !== "string" ||
-			typeof metadata.runDir !== "string"
+			typeof metadata.runDir !== "string" ||
+			// discardRun deletes runDir and stop kills tmuxSession, so both must be the ones this folder implies.
+			metadata.runDir !== runDir ||
+			!/^[a-z0-9]+$/.test(metadata.handle) ||
+			metadata.tmuxSession !== `pstack-subagent-${metadata.handle}`
 		) {
 			return undefined;
 		}
@@ -156,7 +160,7 @@ export function removeRunDir(runDir: string): void {
 
 /** Remove a run for good. Its worktree is unregistered first; the branch is kept. */
 export function discardRun(metadata: RunMetadata): void {
-	if (metadata.worktree) {
+	if (metadata.worktree?.path === join(metadata.runDir, "worktree")) {
 		spawnSync("git", ["-C", metadata.worktree.repo, "worktree", "remove", "--force", metadata.worktree.path], {
 			stdio: "ignore",
 		});
