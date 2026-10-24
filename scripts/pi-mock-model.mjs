@@ -28,6 +28,9 @@ function reply(body) {
   const all = body.messages.map((m) => text(m.content)).join("\n");
   const last = body.messages.at(-1);
   if (all.includes(script ? "Task:\n" : "Task:\nprobe")) {
+    // A child whose task holds "RUN: <command>" runs it with bash first, so a script can show what children inherit.
+    const run = /RUN: (.+)/.exec(all)?.[1];
+    if (run && last.role !== "tool") return { toolCall: { id: "call_child_run", name: "bash", arguments: JSON.stringify({ command: run, timeout: 60 }) } };
     const agent = system.includes("# Comment Sicko") ? "comment-sicko" : system.includes("# Poteto subagent") ? "poteto-agent" : "none";
     const tools = (body.tools ?? []).map((t) => t.function?.name).sort().join(",");
     const worktree = /\/pstack-worktrees\/[a-z0-9]+/.test(all) ? "yes" : "no";

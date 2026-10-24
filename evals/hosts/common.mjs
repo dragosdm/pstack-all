@@ -23,7 +23,9 @@ export function readJson(file, fallback = null) {
 export function workspaceFacts(dir) {
   const status = existsSync(join(dir, "git-status.txt")) ? readFileSync(join(dir, "git-status.txt"), "utf8").trim() : null;
   const staged = readJson(join(dir, "staged.json"));
+  const shims = join(dir, "shims.log");
   return {
+    remoteWrites: existsSync(shims) ? readFileSync(shims, "utf8").split("\n").filter(Boolean) : null,
     dirty: status === null ? null : status.split("\n").filter(Boolean).join("; ") || false,
     stagedChanged: staged ? staged.before !== staged.after : null,
     rulesChanged: readJson(join(dir, "rules.json"))?.changed ?? null,

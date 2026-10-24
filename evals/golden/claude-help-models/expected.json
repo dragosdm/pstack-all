@@ -1,5 +1,5 @@
 {
   "why": "The 2026-10-22 verify-pstack-all proof: adapter read, no spawns, answer names /pstack:setup-pstack and ~/.claude/rules/pstack-models.md. The session had only read tools.",
   "ok": true,
-  "verdicts": { "loaded": "pass", "adapter": "pass", "spawns": "pass", "clean": "pass", "rulesUntouched": "n/a", "answer": "pass" }
+  "verdicts": { "loaded": "pass", "adapter": "pass", "spawns": "pass", "clean": "pass", "rulesUntouched": "n/a", "answer": "pass", "noRemoteWrites": "n/a" }
 }

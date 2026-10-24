@@ -45,12 +45,20 @@ fi
 
 cell evals/mock/how-complex-wrong.json "$work/wrong"
 wrong="$(jq -r '[.verdicts | to_entries[] | select(.value.verdict == "fail") | .key] | join(",")' "$work"/wrong/*/grade.json 2>/dev/null || echo missing)"
-want="adapter,spawns,parallel,readonly,announced,noLeftover"
+want="adapter,spawns,parallel,readonly,announced,noRemoteWrites,noLeftover"
 if [[ "$wrong" == "$want" ]]; then
-  echo "eval: a scripted wrong run (no adapter read, serial writable spawns, a child left running, no fallback line) fails exactly $want"
+  echo "eval: a scripted wrong run (no adapter read, serial writable spawns, a push and a PR, a child left running, no fallback line) fails exactly $want"
 else
   echo "eval: FAIL the scripted wrong run failed [$wrong], want [$want]"
   tail -5 "$work/wrong.log"
+  status=1
+fi
+# The parent's gh call and the child's git push both reach the shims, so a subagent inherits them.
+shims="$(sort "$work"/wrong/*/shims.log 2>/dev/null | paste -sd'|' -)"
+if [[ "$shims" == "gh pr create --fill|git push origin HEAD" ]]; then
+  echo "eval: the parent's gh pr create and a subagent's git push were logged to shims.log and refused"
+else
+  echo "eval: FAIL shims.log holds [$shims], want the parent's gh pr create and the subagent's git push"
   status=1
 fi
 # Worktree children of a project-local install once never loaded the bridge and sat at a trust prompt, so wait hung.

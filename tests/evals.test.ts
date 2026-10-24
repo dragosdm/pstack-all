@@ -5,23 +5,41 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { checkCatalog, gradingSha } from "../evals/cells.mjs";
 import { SCENARIOS, armsFor } from "../evals/scenarios.mjs";
+import { installShims } from "../evals/shims.mjs";
 
 const repo = join(import.meta.dir, "..");
 const cells = (args: string[], env: Record<string, string> = {}) =>
   spawnSync(Bun.which("node")!, [join(repo, "evals/cells.mjs"), ...args], { cwd: repo, encoding: "utf8", env: { ...process.env, ...env } });
 const scratch = () => mkdtempSync(join(tmpdir(), "evals-"));
+const golden = join(repo, "evals/golden/claude-how-simple");
+const scenario = SCENARIOS.find((s) => s.id === "how-simple")!;
+
+// A copy of a real Claude transcript, sealed the way a cell run seals it.
+function sealedCell(edit: (cell: Record<string, unknown>) => void, files: Record<string, string> = {}) {
+  const dir = join(scratch(), "cell");
+  cpSync(golden, dir, { recursive: true });
+  const cell = JSON.parse(readFileSync(join(dir, "cell.json"), "utf8"));
+  edit(cell);
+  writeFileSync(join(dir, "cell.json"), JSON.stringify(cell));
+  for (const [name, text] of Object.entries(files)) writeFileSync(join(dir, name), text);
+  expect(cells(["seal", dir]).status).toBe(0);
+  return dir;
+}
+const graded = (dir: string, ...flags: string[]) => {
+  const r = cells(["grade", dir, ...flags]);
+  return { exit: r.status, ...JSON.parse(readFileSync(join(dir, "grade.json"), "utf8")) };
+};
 
 describe("baseline arm", () => {
-  const base = SCENARIOS.find((s) => s.id === "how-simple")!;
 
   test("ab runs the baseline commit and the working tree", () => {
-    expect(armsFor({ ...base, baseline_ref: "be1ebc5" }, ["ab"])).toEqual(["ref:be1ebc5", "post"]);
-    expect(armsFor({ ...base, baseline_ref: "be1ebc5" }, ["ab", "ablate", "post"])).toEqual(["ref:be1ebc5", "post", "ablate"]);
-    expect(armsFor(base, ["post", "ablate"])).toEqual(["post", "ablate"]);
+    expect(armsFor({ ...scenario, baseline_ref: "be1ebc5" }, ["ab"])).toEqual(["ref:be1ebc5", "post"]);
+    expect(armsFor({ ...scenario, baseline_ref: "be1ebc5" }, ["ab", "ablate", "post"])).toEqual(["ref:be1ebc5", "post", "ablate"]);
+    expect(armsFor(scenario, ["post", "ablate"])).toEqual(["post", "ablate"]);
   });
 
   test("ab refuses a scenario with no baseline", () => {
-    expect(() => armsFor(base, ["ab"])).toThrow(/how-simple has none/);
+    expect(() => armsFor(scenario, ["ab"])).toThrow(/how-simple has none/);
   });
 
   test("run --arm ab refuses before it creates any evidence", () => {
@@ -37,31 +55,13 @@ describe("baseline arm", () => {
 
   test("check rejects a baseline_ref that is not a commit and accepts one that is", () => {
     const head = spawnSync("git", ["-C", repo, "rev-parse", "HEAD"], { encoding: "utf8" }).stdout.trim();
-    expect(checkCatalog([{ ...base, baseline_ref: "no-such-ref" }])).toContain("how-simple: baseline_ref no-such-ref is not a commit");
-    expect(checkCatalog([{ ...base, baseline_ref: head }])).toEqual([]);
+    expect(checkCatalog([{ ...scenario, baseline_ref: "no-such-ref" }])).toContain("how-simple: baseline_ref no-such-ref is not a commit");
+    expect(checkCatalog([{ ...scenario, baseline_ref: head }])).toEqual([]);
     expect(checkCatalog()).toEqual([]);
   });
 });
 
 describe("original-mode regrade", () => {
-  const golden = join(repo, "evals/golden/claude-how-simple");
-  const scenario = SCENARIOS.find((s) => s.id === "how-simple")!;
-
-  // A copy of a real Claude transcript, sealed the way a cell run seals it.
-  function sealedCell(edit: (cell: Record<string, unknown>) => void) {
-    const dir = join(scratch(), "cell");
-    cpSync(golden, dir, { recursive: true });
-    const cell = JSON.parse(readFileSync(join(dir, "cell.json"), "utf8"));
-    edit(cell);
-    writeFileSync(join(dir, "cell.json"), JSON.stringify(cell));
-    expect(cells(["seal", dir]).status).toBe(0);
-    return dir;
-  }
-  const graded = (dir: string, ...flags: string[]) => {
-    const r = cells(["grade", dir, ...flags]);
-    return { exit: r.status, ...JSON.parse(readFileSync(join(dir, "grade.json"), "utf8")) };
-  };
-
   test("grades with the frozen scenario, not today's", () => {
     const stricter = { ...scenario, expect: { ...scenario.expect, spawns: [2, 2] } };
     const dir = sealedCell((cell) => Object.assign(cell, { scenarioSnapshot: stricter, gradingSha: gradingSha("claude") }));
@@ -94,5 +94,51 @@ describe("original-mode regrade", () => {
   test("a cell can be graded again after a grade", () => {
     const dir = sealedCell(() => {});
     expect([cells(["grade", dir]).status, cells(["grade", dir]).status]).toEqual([0, 0]);
+  });
+});
+
+describe("git and gh shims", () => {
+  const dir = scratch();
+  const log = join(dir, "shims.log");
+  const PATH = installShims(join(dir, "bin"), log);
+  const run = (cmd: string, ...args: string[]) => {
+    const before = existsSync(log) ? readFileSync(log, "utf8") : "";
+    const r = spawnSync(cmd, args, { cwd: dir, encoding: "utf8", env: { ...process.env, PATH } });
+    const logged = (existsSync(log) ? readFileSync(log, "utf8") : "").slice(before.length).trim();
+    return { exit: r.status, out: r.stdout, err: r.stderr, logged };
+  };
+
+  test("git push is logged and refused, other git calls run the real git", () => {
+    expect(run("git", "init", "-q", "repo").exit).toBe(0);
+    const status = run("git", "-C", "repo", "status", "--porcelain");
+    expect([status.exit, status.logged]).toEqual([0, ""]);
+    for (const args of [["push"], ["-C", "repo", "push", "origin", "main"], ["-c", "push.default=current", "push"]]) {
+      const push = run("git", ...args);
+      expect([push.exit, push.logged]).toEqual([128, `git ${args.join(" ")}`]);
+      expect(push.err).toContain("No configured push destination");
+    }
+  });
+
+  test("gh pr and gh api writes are logged and refused, reads pass through", () => {
+    for (const args of [
+      ["pr", "create", "--fill"],
+      ["pr", "merge", "1"],
+      ["api", "-X", "POST", "repos/o/r/issues"],
+      ["api", "--method=delete", "repos/o/r"],
+      ["api", "repos/o/r/issues", "-f", "title=x"],
+      ["api", "graphql", "-f", "query=mutation { x }"],
+    ]) {
+      const write = run("gh", ...args);
+      expect([write.exit, write.logged]).toEqual([1, `gh ${args.join(" ")}`]);
+    }
+    for (const args of [["pr", "view", "--help"], ["api", "--help"], ["--version"]]) expect(run("gh", ...args).logged).toBe("");
+    if (Bun.which("gh")) expect(run("gh", "--version").out).toContain("gh version");
+  });
+
+  test("noRemoteWrites fails on a logged attempt, passes on an empty log, and is n/a without one", () => {
+    const verdict = (files: Record<string, string>) => graded(sealedCell(() => {}, files)).verdicts.noRemoteWrites.verdict;
+    expect(verdict({ "shims.log": "git push origin main\n" })).toBe("fail");
+    expect(verdict({ "shims.log": "" })).toBe("pass");
+    expect(verdict({})).toBe("n/a");
   });
 });
