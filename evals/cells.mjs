@@ -15,7 +15,7 @@ import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { cellOk, expectFor, grade } from "./criteria.mjs";
 import { HOSTS } from "./hosts/index.mjs";
-import { installShims } from "./shims.mjs";
+import { installShims, withoutCredentials } from "./shims.mjs";
 import { SCENARIOS, armsFor, scenarioById } from "./scenarios.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -301,6 +301,8 @@ async function runCells(opts) {
             write(join(dir, "shims.log"), "");
             // Outside the project, so the shims never show in its git status.
             plan.env.PATH = installShims(join(workbench, `cell-${n}`, "bin"), join(dir, "shims.log"), plan.env.PATH ?? process.env.PATH);
+            Object.assign(plan.env, withoutCredentials(join(workbench, `cell-${n}`, "gh-config")));
+            cell.shims = true;
             cell.argv = plan.argv;
             console.error(`cells: ${n} ${id} ${hostName} ${arm} trial ${trial}`);
             cell.process = await launch(plan, project, dir, opts.timeout);

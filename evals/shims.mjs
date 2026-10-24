@@ -37,21 +37,20 @@ for arg in "$@"; do
   case "$arg" in
     -C|-c|--git-dir|--work-tree|--namespace|--config-env) skip=1 ;;
     -*) ;;
-    push) refuse "$@"; echo "fatal: No configured push destination." >&2; exit 128 ;;
+    push|send-pack) refuse "$@"; echo "fatal: No configured push destination." >&2; exit 128 ;;
     *) break ;;
   esac
 done
 ${runReal("git")}`;
 
-// gh pr reads pass through. gh api writes when its method is not GET or HEAD, when it sends fields without a method,
-// and for a GraphQL mutation or a query read from a file.
+// gh refuses by default. Reads pass through: help and version, and the read verbs of any command group. gh api writes
+// when its method is not GET or HEAD, when it sends fields without a method, and for a GraphQL mutation or a query read
+// from a file.
 const GH = (real, log) => `${preamble("gh", real, log)}write=
 case "$1" in
-  pr)
-    case "$2" in
-      ""|view|list|status|diff|checks|checkout|help|-h|--help) ;;
-      *) write=1 ;;
-    esac ;;
+  ""|help|-h|--help|version|--version|completion|search) ;;
+  auth)
+    case "$2" in status|token|help|-h|--help|"") ;; *) write=1 ;; esac ;;
   api)
     method= fields= graphql= mutation= prev=
     for arg in "$@"; do
@@ -73,6 +72,11 @@ case "$1" in
     elif [ -n "$fields" ]; then
       write=1
     fi ;;
+  *)
+    case "$2" in
+      ""|view|list|status|diff|checks|checkout|clone|download|watch|help|-h|--help) ;;
+      *) write=1 ;;
+    esac ;;
 esac
 if [ -n "$write" ]; then
   refuse "$@"
@@ -80,6 +84,18 @@ if [ -n "$write" ]; then
   exit 1
 fi
 ${runReal("gh")}`;
+
+// Shims catch the git and gh calls they recognize. Without credentials, a call they miss, such as a git alias that runs
+// push, still cannot write to a remote. Returned as an env delta for launch, where undefined removes a variable.
+export function withoutCredentials(emptyDir) {
+  mkdirSync(emptyDir, { recursive: true });
+  return {
+    GH_TOKEN: undefined, GITHUB_TOKEN: undefined, GH_ENTERPRISE_TOKEN: undefined, GITHUB_ENTERPRISE_TOKEN: undefined,
+    GH_CONFIG_DIR: emptyDir,
+    GIT_SSH_COMMAND: "false", GIT_ASKPASS: "false", SSH_ASKPASS: undefined, GIT_TERMINAL_PROMPT: "0",
+    GIT_CONFIG_COUNT: "1", GIT_CONFIG_KEY_0: "credential.helper", GIT_CONFIG_VALUE_0: "",
+  };
+}
 
 // Returns the PATH to launch the harness with.
 export function installShims(shimDir, log, path = process.env.PATH ?? "") {
