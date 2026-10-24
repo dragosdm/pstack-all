@@ -54,7 +54,7 @@ const HARNESSES = [
   },
   {
     // A Pi package is a package.json with a pi key; the subagent extension reads pstack/agents itself. opencode loads
-    // the plugin from main.
+    // the plugin from main. The ./tests path keeps bun out of pstack/'s own suites, which check-base.sh runs.
     harness: "pi, opencode",
     file: "package.json",
     render: () => {
@@ -64,6 +64,7 @@ const HARNESSES = [
         private: true,
         type: "module",
         main: "index.js",
+        scripts: { test: "bun test ./tests" },
         keywords: [...meta.keywords, "pi-package"],
         pi: {
           extensions: ["./.pi/extensions/pstack.ts", "./.pi/extensions/subagent/index.ts"],

@@ -21,6 +21,9 @@
   "private": true,
   "type": "module",
   "main": "index.js",
+  "scripts": {
+    "test": "bun test ./tests"
+  },
   "pi": {
     "extensions": [
       "./.pi/extensions/pstack.ts",
