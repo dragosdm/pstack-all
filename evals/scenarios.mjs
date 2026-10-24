@@ -14,6 +14,7 @@ export const SCENARIOS = [
     hosts: {
       claude: { answer: ["/pstack:setup-pstack", "~/\\.claude/rules/pstack-models\\.md"] },
       pi: { answer: ["/(pstack|skill):setup-pstack", "~/\\.pi/agent/pstack-models\\.md"] },
+      opencode: { answer: ["/pstack:setup-pstack", "~/\\.config/opencode/pstack-models\\.md"] },
     },
     control: ["adapter", "answer"],
     why: "The answer is right only if the adapter was applied: harness setup command and rule path, not Cursor's.",
@@ -24,7 +25,7 @@ export const SCENARIOS = [
     fixture: "billing-service",
     prompt: "how does computeTax decide whether to round tax per line or once for the whole order?",
     expect: { loaded: true, adapter: true, spawns: [1, 1], readonly: true, modelsValid: true, announced: true, clean: true, rulesUntouched: true, noRemoteWrites: true },
-    hosts: { claude: {}, pi: { noLeftover: true }, cursor: {}, grok: {} },
+    hosts: { claude: {}, pi: { noLeftover: true }, cursor: {}, grok: {}, opencode: {} },
     control: ["adapter"],
     why: "A narrow question takes the simple path: one read-only explainer, no explorers, Task mapped to the harness.",
   },
@@ -37,7 +38,7 @@ export const SCENARIOS = [
     expect: {
       loaded: true, adapter: true, spawns: [3, 5], parallel: 2, readonly: true, modelsValid: true, announced: true, clean: true, rulesUntouched: true, noRemoteWrites: true,
     },
-    hosts: { claude: {}, pi: { noLeftover: true }, cursor: {}, grok: {} },
+    hosts: { claude: {}, pi: { noLeftover: true }, cursor: {}, grok: {}, opencode: {} },
     control: ["adapter"],
     why: "A full overview takes the complex path: explorers in one batch, then one explainer, all read-only; explorer default model is not a Claude or Pi model, so the fallback must be announced.",
   },
@@ -50,7 +51,7 @@ export const SCENARIOS = [
     expect: {
       loaded: true, adapter: true, spawns: [2, 4], parallel: 2, readonly: true, modelsValid: true, announced: true, stagedIntact: true, rulesUntouched: true, noRemoteWrites: true,
     },
-    hosts: { claude: {}, pi: { noLeftover: true } },
+    hosts: { claude: {}, pi: { noLeftover: true }, opencode: {} },
     control: ["adapter"],
     why: "Reviewers fan out together, read-only, and nothing is applied; the flaw is visible only against invoice.js.",
   },
@@ -72,7 +73,7 @@ export const SCENARIOS = [
     overlay: { dir: "narrated-report", staged: false },
     prompt: "src/report.js",
     expect: { loaded: true, adapter: true, spawns: [1, 2], agent: "comment-sicko", rulesUntouched: true, noRemoteWrites: true },
-    hosts: { claude: {}, pi: { noLeftover: true } },
+    hosts: { claude: {}, pi: { noLeftover: true }, opencode: {} },
     control: ["adapter"],
     why: "The skill's work is done by the named comment-sicko agent, translated to each harness's agent mechanism.",
   },

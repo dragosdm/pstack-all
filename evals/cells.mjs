@@ -23,7 +23,7 @@ const repo = resolve(here, "..");
 const DERIVED = new Set(["run.json", "grade.json", "manifest.json", "summary.json", "summary.md"]);
 const BLINDED = /\b(eval|evals|test|judge|rubric|score|benchmark|experiment|candidate|grader)\b/i;
 // Only what a harness loads goes into a cell's plugin tree, so a session can't read this directory's expectations.
-const LOADED_PATHS = ["pstack", ".claude-plugin", ".cursor-plugin", "plugin.json", "package.json", ".pi", "docs/harness"];
+const LOADED_PATHS = ["pstack", ".claude-plugin", ".cursor-plugin", "plugin.json", "package.json", "index.js", ".pi", ".opencode", "docs/harness"];
 const RULE_FILES = [".claude/rules/pstack-models.md", ".pi/agent/pstack-models.md", ".cursor/rules/pstack-models.mdc"].map((p) => join(homedir(), p));
 
 const sh = (cmd, args, opts = {}) => {
@@ -95,7 +95,7 @@ function gradeCell(dir, criteria = "current") {
 function parseArgs(argv) {
   const opts = {
     arm: ["post"], trials: 1, timeout: 900, claudeModel: "sonnet", claudeBudget: 2,
-    piModel: process.env.PSTACK_CELL_PI_MODEL ?? "openai-codex/gpt-6.1-sol:medium", cursorModel: null, grokModel: null, piAgentDir: null, out: null,
+    piModel: process.env.PSTACK_CELL_PI_MODEL ?? "openai-codex/gpt-6.1-sol:medium", cursorModel: null, grokModel: null, opencodeModel: null, opencodeConfig: null, piAgentDir: null, out: null,
   };
   const list = (v) => v.split(",").filter(Boolean);
   for (let i = 0; i < argv.length; i++) {
@@ -114,6 +114,8 @@ function parseArgs(argv) {
       case "--pi-agent-dir": opts.piAgentDir = resolve(value); break;
       case "--cursor-model": opts.cursorModel = value; break;
       case "--grok-model": opts.grokModel = value; break;
+      case "--opencode-model": opts.opencodeModel = value; break;
+      case "--opencode-config": opts.opencodeConfig = resolve(value); break;
       case "--out": opts.out = resolve(value); break;
       default: throw new Error(`unknown flag ${flag}`);
     }
@@ -130,7 +132,9 @@ function parseArgs(argv) {
 function materialize(arm, dest) {
   mkdirSync(dest, { recursive: true });
   if (arm.startsWith("ref:")) {
-    sh("bash", ["-c", `git -C "$0" archive "$1" -- "\${@:3}" | tar -x -C "$2"`, repo, arm.slice(4), dest, ...LOADED_PATHS]);
+    // An older commit lacks the newer harness entries, and git archive refuses a path the commit does not have.
+    const present = sh("git", ["-C", repo, "ls-tree", "--name-only", arm.slice(4), "--", ...LOADED_PATHS]).split("\n").filter(Boolean);
+    sh("bash", ["-c", `git -C "$0" archive "$1" -- "\${@:3}" | tar -x -C "$2"`, repo, arm.slice(4), dest, ...present]);
   } else if (arm === "upstream") {
     const upstream = process.env.PSTACK_UPSTREAM_DIR;
     if (!upstream) throw new Error("the upstream arm needs PSTACK_UPSTREAM_DIR");
@@ -284,7 +288,7 @@ async function runCells(opts) {
               adapterPath: host.adapter(pluginRoot, arm),
               installedRoot: installs.find((i) => i.key === `${hostName}:${arm}`)?.installedRoot,
               prompt: `${host.command(scenario.skill)}${scenario.prompt ? ` ${scenario.prompt}` : ""}`,
-              models: { claude: opts.claudeModel, pi: opts.piModel, cursor: opts.cursorModel, grok: opts.grokModel }[hostName] ?? null,
+              models: { claude: opts.claudeModel, pi: opts.piModel, cursor: opts.cursorModel, grok: opts.grokModel, opencode: opts.opencodeModel }[hostName] ?? null,
               repoHead: sh("git", ["-C", repo, "rev-parse", "HEAD"]),
               repoDirty: sh("git", ["-C", repo, "status", "--porcelain"]) !== "",
               pstackTree: sh("git", ["-C", repo, "rev-parse", "HEAD:pstack"]),

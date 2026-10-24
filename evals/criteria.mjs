@@ -13,6 +13,9 @@ const VALID_MODELS = {
   claude: { model: ["opus", "sonnet", "haiku", "fable"], effort: ["low", "medium", "high", "xhigh", "max"] },
 };
 
+// Hosts whose adapter says to name the session model when a spawn omits one.
+const FALLBACK_RULE = new Set(["claude", "pi", "opencode"]);
+
 const describe = (spawn) => `${spawn.agent ?? "default"}${spawn.model ? ` ${spawn.model}` : ""}${spawn.effort ? `/${spawn.effort}` : ""}`;
 
 export const CRITERIA = {
@@ -69,7 +72,7 @@ export const CRITERIA = {
   },
 
   announced: (run) => {
-    if (!VALID_MODELS[run.host] && run.host !== "pi") return na(`${run.host} has no fallback rule`);
+    if (!FALLBACK_RULE.has(run.host)) return na(`${run.host} has no fallback rule`);
     const omitted = run.spawns.filter((spawn) => !spawn.model);
     if (omitted.length === 0) return na("every spawn named a model");
     return check(ANNOUNCED.test(run.final), `${omitted.length} spawns on the session model; answer ${ANNOUNCED.test(run.final) ? "says so" : "never says so"} (keyword check, read the answer)`);

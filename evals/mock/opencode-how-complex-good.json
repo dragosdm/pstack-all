@@ -1,0 +1,11 @@
+[
+  { "skill": "how" },
+  { "read": "adapter" },
+  { "spawn": [
+    { "agent": "explore", "description": "currency", "prompt": "Trace currency rounding. Do not edit files." },
+    { "agent": "explore", "description": "pricing", "prompt": "Trace discounts and tax. Do not edit files." },
+    { "agent": "explore", "description": "invoices", "prompt": "Trace how an invoice is numbered and stored. Do not edit files." }
+  ] },
+  { "spawn": [{ "agent": "explore", "description": "explainer", "prompt": "Explain from the findings. Do not edit files." }] },
+  { "text": "## Overview\n\nOrders flow through computeTotal. No pstack-models.md exists, so every subagent ran on the session model." }
+]

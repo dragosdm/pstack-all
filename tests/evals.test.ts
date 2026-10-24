@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { checkCatalog, gradingSha } from "../evals/cells.mjs";
 import { SCENARIOS, armsFor } from "../evals/scenarios.mjs";
+import { opencode } from "../evals/hosts/opencode.mjs";
 import { installShims } from "../evals/shims.mjs";
 
 const repo = join(import.meta.dir, "..");
@@ -94,6 +95,21 @@ describe("original-mode regrade", () => {
   test("a cell can be graded again after a grade", () => {
     const dir = sealedCell(() => {});
     expect([cells(["grade", dir]).status, cells(["grade", dir]).status]).toEqual([0, 0]);
+  });
+});
+
+describe("opencode host", () => {
+  test("ablate removes the adapter line from the context hook and nothing else", () => {
+    const tree = scratch();
+    const plugin = join(tree, ".opencode/plugins/pstack.js");
+    cpSync(join(repo, ".opencode"), join(tree, ".opencode"), { recursive: true });
+    const before = readFileSync(plugin, "utf8");
+    opencode.ablate(tree);
+    const after = readFileSync(plugin, "utf8");
+    expect(before).toContain("text: adapterLine");
+    expect(after).not.toContain("text: adapterLine");
+    expect(after).toContain("if (agent) event.system.push({ type: \"text\", text: agent.body })");
+    expect(() => opencode.ablate(tree)).toThrow(/no longer pushes the adapter line/);
   });
 });
 
