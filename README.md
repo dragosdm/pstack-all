@@ -16,7 +16,8 @@ The layout follows compound-engineering. Every harness loads one skill tree in p
 - `docs/specs/<harness>.md` records what was verified for each harness, how, and what was not.
 - `base/` records the base: the upstream lock, the upstream file listing, the test baseline, and upstream's catalog validator and schemas in `base/upstream/`.
 - `decisions.tsv` is the decision log.
-- `evals/` holds the skill cells: scenarios that run a pstack skill in a real Claude Code, Pi or Cursor session, loaded natively from a copy of this repo, and grade what the harness recorded (spawns, read-only flags, worktrees, models, git state, the answer). `evals/README.md` explains them. Their evidence goes to `.verify-runs/`.
+- `evals/` holds the skill cells: scenarios that run a pstack skill in a real Claude Code, Pi, Cursor, Grok CLI or opencode session, loaded natively from a copy of this repo, and grade what the harness recorded (spawns, read-only flags, worktrees, models, git state, refused remote writes, the answer). `evals/README.md` explains them. Their evidence goes to `.verify-runs/`.
+- `AGENTS.md` holds the rules for changing this repo, and `CLAUDE.md` is a symlink to it. `CODING_STANDARDS.md` and `tests/CODING_STANDARDS.md` are the review criteria.
 - `.claude/skills/verify-pstack-all/` is the verification skill: it installs pstack into throwaway Claude Code and Grok configs, drives `/pstack:` skills in real Claude sessions, and keeps evidence in `.verify-runs/` (gitignored). `scripts/check.sh` proves the files; this proves the user path.
 
 ## Harnesses
@@ -32,18 +33,7 @@ The layout follows compound-engineering. Every harness loads one skill tree in p
 
 ## What must stay unchanged
 
-- Every file under `pstack/`, byte for byte and mode for mode, equals upstream `eb4db2b:pstack` (tree `d08bf3a`).
-- Skill behavior. pstack's own suites keep the counts in `base/test-baseline.tsv`.
-- What each harness discovers. Grok CLI lists the same skills and agents from the repo root as from `pstack/`.
-- Upstream's Cursor and Grok Bot shape, a catalog entry whose source is `pstack/`.
-- Grok CLI loads the root `plugin.json`, never `.claude-plugin/plugin.json`.
-- Claude Code names: the plugin is `pstack`, so the adapter's `pstack:poteto-agent` and `/pstack:<name>` hold.
-- Pi agent names: `poteto-agent` and `comment-sicko`, as upstream names the files, passed as `pstack-subagent --agent <name>`.
-- opencode names: the plugin id is `pstack`, the commands are `pstack:<name>`, and the agents are `poteto-agent` and `comment-sicko`, as the opencode adapter names them.
-- Skill commands. Claude Code, Pi and opencode all use `/pstack:<name>`. Cursor and Grok use `/<name>`, because those harnesses name skills from `SKILL.md` and `pstack/` stays upstream bytes.
-- Repo-relative paths. Playbooks reference `pstack/skills/...` from the repo root, so `pstack/` stays at the root.
-
-Updating the base is a deliberate step. Copy the new upstream tree, rewrite `base/pstack.lock` and `base/pstack.ls-tree`, run `scripts/check-base.sh --record`, then `node scripts/sync-manifests.mjs`.
+`AGENTS.md` lists the invariants, the skill command per harness, and how to update the upstream base.
 
 ## Check
 
@@ -52,9 +42,9 @@ bun run test
 PSTACK_UPSTREAM_DIR=<cursor/plugins clone> scripts/check.sh
 ```
 
-`bun run test` is the fast lane. It runs the unit tests in `tests/` in one bun process in well under a second, with no harness binary, login or network. Each test drives the opencode plugin, the Pi extension or the manifest generator through the interface its harness uses, with a mock in place of the harness. The script lives in the `sync-manifests.mjs` table, because `package.json` is generated. A test writes only inside its own `mktemp` directory and never reads the user's home config.
+`bun run test` is the fast lane. It runs the unit tests in `tests/` in one bun process in well under a second, with no harness binary, login or network. Each test drives the opencode plugin, the Pi extension, the manifest generator or the eval grader and shims through the interface its harness uses, with a mock in place of the harness.
 
-A deterministic check that needs no harness binary belongs in `bun run test`. One that drives a real harness belongs in a `check.sh` layer. Skill behavior needs a model, so it belongs in the billed eval cells.
+CI (`.github/workflows/ci.yml`) runs the deterministic lane on every push to `main` and every pull request: the manifest check, the base check, the catalog check, `claude plugin validate --strict` on both Claude manifests, and `bun run test`. The layers that drive grok, pi and opencode run only locally. Before you change this repo, read `AGENTS.md`. It says where a new check belongs.
 
 `scripts/check.sh` is the full local lane. It runs nine layers and fails if any layer fails:
 
@@ -66,8 +56,8 @@ A deterministic check that needs no harness binary belongs in `bun run test`. On
 - `claude` runs `scripts/check-claude.sh`. Both Claude manifests must pass `validate --strict`. The repo root must install with every skill, agent file and the adapter hook, and the installed `pstack/` must equal the repo's. `PSTACK_UPSTREAM_DIR` adds a comparison with upstream's Claude tree. `PSTACK_CLAUDE_RUNTIME=1` adds a billed model probe.
 - `pi` runs `scripts/check-pi.sh`. The repo root must install as a Pi package that lists every skill under `pstack/skills/`, and the extension must name the Pi adapter. Pi run inside this checkout with nothing installed must list the same skills, because it auto-loads `.pi/extensions/` there without `package.json`. A `pi -p` run against a dummy provider must give the model the adapter line and the model-invocable pstack skills, with no model call, and `/pstack:how` must reach the model as the `how` skill. A `pi -p` run against a scripted local model must spawn `comment-sicko` read-only and `poteto-agent` in a worktree through `pstack-subagent`, get both answers back, and clean up.
 - `opencode` runs `scripts/check-opencode.sh`. `opencode serve` with throwaway XDG dirs must load the repo root as a local plugin, list every pstack skill with `autoinvoke` false exactly for `disable-model-invocation: true`, a `pstack:<name>` command per skill, and both agents with the question and subagent denies. A scripted local model must get the adapter line and the model-invocable pstack skills, spawn `comment-sicko` and `poteto-agent` through the `subagent` tool, each with its agent body and no `subagent` tool, and load `how` through `/pstack:how`. No login, network or billing.
-- `eval` runs `scripts/check-eval.sh`. The scenario table must be consistent, and the transcripts in `evals/golden/` must grade as recorded. A Pi cell must pass through the whole driver against a scripted correct run, and a scripted wrong run must fail exactly the six criteria it breaks. No model call. Billed cells are `node evals/cells.mjs run`, never part of the check.
+- `eval` runs `scripts/check-eval.sh`. The scenario table must be consistent, and the transcripts in `evals/golden/` must grade as recorded. Pi cells run through the whole driver against a scripted model. A correct run must pass, and a wrong run must fail exactly the seven criteria it breaks. Its parent's `gh pr create` and a subagent's `git push` must reach the cell's git and gh shims, which log and refuse them. A scripted swarm run must start two worktree workers together and stop them. opencode cells run the same driver against `opencode serve` and a scripted model. A correct run must pass, and a wrong run that pushes from the shell tool must fail exactly four criteria. No model call. Billed cells are `node evals/cells.mjs run`, never part of the check.
 
 Without `PSTACK_UPSTREAM_DIR` the locks are trusted as written. Needs `git`, `bun`, `node`, `npm`, `jq`, `column`, `grok`, `claude`, `pi`, `opencode`, `curl`, and `tmux`. Billed cells also need `cursor-agent` for the Cursor reference column. The baseline was recorded with bun 1.3.10 and node v26.8.2. The 31 statechart tests that need TLC are skipped without Java and `TLA2TOOLS`.
 
-`scripts/selftest-check.sh` breaks a throwaway copy thirty-five ways and requires each break to fail its own layer. Its last output is in `.audit/check-selftest.txt`. `.audit/base-selftest.txt` shows the base check failing on four deliberate breaks.
+`scripts/selftest-check.sh` breaks a throwaway copy 41 ways and requires each break to fail its own layer. `.audit/check-selftest.txt` holds a recorded run of the first 35 breaks. `.audit/base-selftest.txt` shows the base check failing on four deliberate breaks.
