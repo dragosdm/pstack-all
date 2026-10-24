@@ -37,6 +37,20 @@ if grep -qiE 'error|failed' "$work/rpc.err"; then
   status=1
 fi
 
+# Inside this checkout, with nothing installed, Pi still auto-loads the trusted project's .pi/extensions but not the
+# package.json pi.skills, so the skills must come from the extension or the adapter line arrives with no skills.
+mkdir -p "$work/bare"
+in_repo="$((echo '{"type":"get_commands"}'; sleep 4) | PI_CODING_AGENT_DIR="$work/bare" PI_OFFLINE=1 timeout 60 "$pi" --mode rpc \
+  --no-session --approve 2>/dev/null | jq -r --arg dir "$root/pstack/skills/" '
+  select(.command == "get_commands") | .data.commands[]
+  | select(.source == "skill" and (.sourceInfo.path | startswith($dir))) | .name | ltrimstr("skill:")' | sort | paste -sd, - || true)"
+if [[ "$in_repo" == "$want_skills" ]]; then
+  echo "pi: run inside the checkout with nothing installed, get_commands still lists every pstack skill"
+else
+  echo "pi: FAIL run inside the checkout with nothing installed, get_commands lists pstack skills [$in_repo]"
+  status=1
+fi
+
 # A real print-mode run against a dummy provider. The extension below saves the request pi would send, after every
 # before_agent_start handler has run, and exits before sending it.
 cat >"$work/dump.ts" <<'EOF'
@@ -69,6 +83,17 @@ if [[ -n "$offered" && "$offered" == "$want_offered" ]]; then
   echo "pi: the system prompt offers the model $offered, every pstack skill without disable-model-invocation"
 else
   echo "pi: FAIL the system prompt offers [$offered], want [$want_offered]"
+  status=1
+fi
+# Users type /pstack:<name>, the standard shared with Claude Code and opencode; Pi must load the skill for it.
+(cd "$work/cwd" && PI_OFFLINE=1 PSTACK_REQUEST="$work/alias.json" timeout 60 "$pi" -p --no-session --no-context-files \
+  --model pstack-check/none -e "$work/dump.ts" "/pstack:how check-pi" </dev/null >"$work/alias.log" 2>&1) || true
+alias_text="$(jq -r '[.messages[] | select(.role == "user") | .content
+  | if type == "string" then . else map(.text) | join("") end] | last' "$work/alias.json" 2>/dev/null || true)"
+if [[ "$alias_text" == "<skill name=\"how\" location=\"$root/pstack/skills/how/SKILL.md\">"* && "$alias_text" == *check-pi ]]; then
+  echo "pi: /pstack:how loads the how skill with its arguments"
+else
+  echo "pi: FAIL /pstack:how sent [$(head -c 80 <<<"$alias_text")], not the how skill"
   status=1
 fi
 

@@ -27,7 +27,7 @@ pstack-subagent stop <handle>
 | `Task` | `pstack-subagent spawn`, then `wait` and `stop`. See Spawning. Several `Task` calls in one message are several `spawn` calls first, then one `wait` per handle. |
 | `AskQuestion` | An ask tool if the session offers one, such as `ask_user` from `pi-ask-user`. Otherwise ask in plain text and stop for the answer. |
 | Open a todolist | Keep the list in your reply and update it at each phase. |
-| Run another pstack skill (`/name` or "the **name** skill") | `read` `<pstack>/skills/<name>/SKILL.md` and follow it. When you tell the user to type it, write `/skill:<name>`. |
+| Run another pstack skill (`/name` or "the **name** skill") | `read` `<pstack>/skills/<name>/SKILL.md` and follow it. When you tell the user to type it, write `/pstack:<name>`. `/skill:<name>` also works. |
 | `Grep`, `Glob` | `bash` with `rg`. |
 
 ## Subagent fields

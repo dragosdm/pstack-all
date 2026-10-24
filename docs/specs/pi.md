@@ -18,6 +18,8 @@ Pi reads the root `package.json`. This is compound-engineering's shape: a Pi pac
 
 - `pi.skills` loads the 57 skills in place. Pi names them `/skill:<name>`.
 - `.pi/extensions/pstack.ts` is the Pi counterpart of the Claude Code `SessionStart` hook. On `before_agent_start` it appends one line to the system prompt: read `docs/harness/pi.md` once per session.
+- The same extension also returns `pstack/skills` from `resources_discover`. Pi auto-loads a trusted project's `.pi/extensions/` without its `package.json`, so before this, Pi run inside this checkout with nothing installed had the adapter line and `pstack-subagent` but no pstack skill. Pi drops the duplicate path when both routes load.
+- Its `input` handler turns `/pstack:<name> <args>` into `/skill:<name> <args>` for a pstack skill. `/pstack:<name>` is the standard shared with Claude Code and opencode. Other text passes through.
 - `.pi/extensions/subagent/` is pstack's subagent support. See Subagents.
 - `type: module` lets node run the `pstack-subagent` TypeScript without a warning on every call.
 
@@ -62,7 +64,8 @@ The model's system prompt lists one pstack skill, `setup-pstack`. The other 56 s
 - installs the repo root into a throwaway `PI_CODING_AGENT_DIR`
 - lists skills over RPC and compares the names under `pstack/skills/` with the folders on disk. Skills from `~/.agents/skills/` also load, so the check filters by path.
 - fails on any startup error. A syntax error in either extension stops Pi at startup.
-- runs `pi -p` against a dummy provider, with a throwaway extension that saves the request at `before_provider_request` and exits before sending it. No login, network or model call. The system message must tell the model to read a file equal to `docs/harness/pi.md`, and must list exactly the pstack skills without `disable-model-invocation`. Pi silently ignores a missing extension file, so this step is the one that catches it.
+- lists skills over RPC again from the repo root with a fresh, empty agent dir and `--approve`. Nothing is installed, so only the auto-loaded `.pi/extensions/` can bring them, and the names must still match.
+- runs `pi -p` against a dummy provider, with a throwaway extension that saves the request at `before_provider_request` and exits before sending it. No login, network or model call. The system message must tell the model to read a file equal to `docs/harness/pi.md`, and must list exactly the pstack skills without `disable-model-invocation`. Pi silently ignores a missing extension file, so this step is the one that catches it. A second dummy run sends `/pstack:how check-pi`, and the last user message must be the `how` skill block ending in `check-pi`.
 - runs `pi -p` against `scripts/pi-mock-model.mjs`, a scripted OpenAI-compatible server on localhost registered in `models.json`, so the tmux children reach it too. The parent's one `bash` call spawns `comment-sicko` with `--tools read,grep,find,ls` and `poteto-agent` with `--worktree HEAD`, waits for both, and stops both. Each child answers with the agent prompt, the tools and the cwd it got, and the check requires both answers exactly. After `stop`, no run folder, tmux session or extra worktree may remain, and the worktree branch must exist. No login or billing.
 
 Set `PI_BIN` to choose the binary. Needs `tmux`.
@@ -100,5 +103,6 @@ Set `PI_BIN` to choose the binary. Needs `tmux`.
 - `pi -p` reads piped stdin. Run it with `</dev/null` in scripts, or it waits forever.
 - A `-e` extension runs before an installed package's extension, so a `before_agent_start` handler passed with `-e` does not see pstack's line. Read the prompt at `before_provider_request`.
 - `--no-skills` also drops the skills of a package loaded with `-e`.
-- Pi also auto-loads `.pi/extensions/` from the project it runs in. Inside this repo with pstack installed, both extensions load twice.
+- Pi also auto-loads `.pi/extensions/` from the project it runs in, but not the project's `package.json` `pi` key. Inside this repo with pstack installed, both extensions load twice. With nothing installed, only the extensions load, which is why the skills come from `resources_discover` too.
+- Pi sends a slash command it does not know, such as `/how`, to the model as plain text, and no error tells the user. `/pstack:how` and `/skill:how` load the skill.
 - A child's model must be reachable from a new process. A provider registered only by a `-e` extension in the parent is unknown to the child, so the check registers its mock in `models.json`.

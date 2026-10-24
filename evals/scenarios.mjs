@@ -11,7 +11,7 @@ export const SCENARIOS = [
     expect: { loaded: true, adapter: true, spawns: [0, 0], clean: true, rulesUntouched: true },
     hosts: {
       claude: { answer: ["/pstack:setup-pstack", "~/\\.claude/rules/pstack-models\\.md"] },
-      pi: { answer: ["/skill:setup-pstack", "~/\\.pi/agent/pstack-models\\.md"] },
+      pi: { answer: ["/(pstack|skill):setup-pstack", "~/\\.pi/agent/pstack-models\\.md"] },
     },
     control: ["adapter", "answer"],
     why: "The answer is right only if the adapter was applied: harness setup command and rule path, not Cursor's.",

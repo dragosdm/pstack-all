@@ -1,6 +1,6 @@
 # pstack in Pi
 
-A Pi user runs `pi install <this repo>` (or `pi install -l` for one project). Pi reads the `pi` key of the root `package.json`: it loads `pstack/skills/` as `/skill:<name>` commands, `.pi/extensions/pstack.ts`, which points the model at `docs/harness/pi.md`, and `.pi/extensions/subagent/`, which puts the `pstack-subagent` command on the `bash` tool's `PATH`.
+A Pi user runs `pi install <this repo>` (or `pi install -l` for one project). Pi reads the `pi` key of the root `package.json`: it loads `pstack/skills/` as `/skill:<name>` commands, `.pi/extensions/pstack.ts`, which points the model at `docs/harness/pi.md` and lets users type `/pstack:<name>`, and `.pi/extensions/subagent/`, which puts the `pstack-subagent` command on the `bash` tool's `PATH`.
 
 ## Sub-features
 
@@ -10,7 +10,7 @@ A Pi user runs `pi install <this repo>` (or `pi install -l` for one project). Pi
 
 ## How to get to it (user POV)
 
-- `pi install <this repo>`, then type `/skill:how ...` in a session.
+- `pi install <this repo>`, then type `/pstack:how ...` or `/skill:how ...` in a session. Cells still drive `/skill:<name>`, so they pass without the extension.
 - A skill that fans out, such as `/skill:how` on a large question, runs `pstack-subagent spawn` itself.
 
 ## Driving it with check-pi.sh and cells

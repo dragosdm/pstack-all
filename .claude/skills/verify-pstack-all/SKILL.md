@@ -5,7 +5,7 @@ description: Drive pstack-all the way a user does, by installing it into Claude 
 
 # Verify pstack-all
 
-pstack-all has no server. Its users touch a harness CLI: they add this repo as a marketplace or package, install `pstack`, and type a skill command (`/pstack:<skill>` in Claude Code, `/skill:<skill>` in Pi, `/<skill>` in Cursor and Grok). This skill drives that path in throwaway config dirs and in real model sessions, and keeps the evidence. Graded skill cells (`evals/cells.mjs`) drive the same path across harnesses. See the features map.
+pstack-all has no server. Its users touch a harness CLI: they add this repo as a marketplace or package, install `pstack`, and type a skill command (`/pstack:<skill>` in Claude Code and opencode, `/pstack:<skill>` or `/skill:<skill>` in Pi, `/<skill>` in Cursor and Grok). This skill drives that path in throwaway config dirs and in real model sessions, and keeps the evidence. Graded skill cells (`evals/cells.mjs`) drive the same path across harnesses. See the features map.
 
 `scripts/check.sh` proves the files: unchanged `pstack/`, manifest drift, validators, and install inventory. This skill proves the user path. Run both. A green check does not prove a session works.
 
