@@ -131,17 +131,19 @@ pi: FAIL pstack-subagent spawn, want [CHILD agent=comment-sicko tools=find,grep,
 check: FAIL pi (exit=1)
 ### Pi subagent stop leaves the worktree
 break: sed -i 's/"worktree", "remove"/"worktree", "list"/' .pi/extensions/subagent/shared.ts
-pi: FAIL stop left [/tmp/tmp.E2BW6eFw8J/repo/.git/pstack-worktrees/33cc37 f29e5db [pstack-subagent/33cc37]] or lost the worktree branch 'pstack-subagent/33cc37'
+pi: FAIL stop left [/tmp/tmp.kEHxzhKEcF/repo/.git/pstack-worktrees/190b40 e63913c [pstack-subagent/190b40]] or lost the worktree branch 'pstack-subagent/190b40'
 check: FAIL pi (exit=1)
 ### opencode index.js removed
 break: rm index.js
 unit: FAIL bun run test
 opencode: FAIL /api/plugin lists pstack as []
-check: FAIL unit pi opencode (exit=1)
+eval: FAIL the scripted correct opencode run failed [loaded,adapter,spawns,parallel]
+eval: FAIL the scripted wrong opencode run failed [loaded,adapter,spawns,parallel], want [adapter,spawns,parallel,noRemoteWrites]
+check: FAIL unit pi opencode eval (exit=1)
 ### opencode adapter removed
 break: rm docs/harness/opencode.md
 unit: FAIL bun run test
-opencode: FAIL the parent's system prompt names '/tmp/tmp.rSvt7FFcFn/repo/docs/harness/opencode.md', not docs/harness/opencode.md
+opencode: FAIL the parent's system prompt names '/tmp/tmp.ta38F5KOeL/repo/docs/harness/opencode.md', not docs/harness/opencode.md
 check: FAIL unit pi opencode (exit=1)
 ### opencode offers every skill to the model
 break: sed -i 's/autoinvoke: meta\["disable-model-invocation"\] !== true/autoinvoke: true/' .opencode/plugins/pstack.js
@@ -153,7 +155,9 @@ check: FAIL unit opencode (exit=1)
 break: sed -i 's/name: `pstack:${skill.id}`/name: skill.id/' .opencode/plugins/pstack.js
 unit: FAIL bun run test
 opencode: FAIL /api/command has pstack commands [], want [architect,arena,automate-me,benchmark-checklist,blast-radius,bro,correct,create-formal-verification-skill,create-verification-skill,figure-it-out,how,interrogate,in-your-own-words,ketchup,maintain-formal-verification-skill,maintain-verification-skill,make-bot-ui,no-comments,poteto-help,poteto-mode,principle-attack-the-premise,principle-boundary-discipline,principle-build-the-lever,principle-encode-lessons-in-structure,principle-exhaust-the-design-space,principle-experience-first,principle-explain-the-number,principle-fix-root-causes,principle-foundational-thinking,principle-guard-the-context-window,principle-laziness-protocol,principle-make-operations-idempotent,principle-migrate-callers-then-delete-legacy-apis,principle-minimize-reader-load,principle-model-the-domain,principle-never-block-on-the-human,principle-outcome-oriented-execution,principle-prove-it-works,principle-redesign-from-first-principles,principle-separate-before-serializing-shared-state,principle-sequence-verifiable-units,principle-subtract-before-you-add,principle-test-behavior-not-implementation,principle-type-system-discipline,recall,reflect,setup-pstack,sharpen,show-me-your-work,statechart,swarm,tdd,teach,technical-writing,typescript-best-practices,unslop,why]
-check: FAIL unit opencode (exit=1)
+eval: FAIL the scripted correct opencode run failed [loaded,adapter,spawns,parallel]
+eval: FAIL the scripted wrong opencode run failed [loaded,adapter,spawns,parallel], want [adapter,spawns,parallel,noRemoteWrites]
+check: FAIL unit opencode eval (exit=1)
 ### opencode agent body hook disabled
 break: sed -i 's/if (agent) event.system.push/if (false) event.system.push/' .opencode/plugins/pstack.js
 unit: FAIL bun run test
@@ -177,7 +181,7 @@ unit: FAIL bun run test
 check: FAIL unit (exit=1)
 ### eval grader ignores Pi --tools
 break: sed -i 's/readonly: tools !== null \&\& /readonly: true || /' evals/hosts/pi.mjs
-eval: FAIL the scripted wrong run failed [adapter,spawns,parallel,announced,noLeftover], want [adapter,spawns,parallel,readonly,announced,noLeftover]
+eval: FAIL the scripted wrong run failed [adapter,spawns,parallel,announced,noRemoteWrites,noLeftover], want [adapter,spawns,parallel,readonly,announced,noRemoteWrites,noLeftover]
 check: FAIL eval (exit=1)
 ### eval grader counts parallel spawns across turns
 break: sed -i 's/perTurn.set(spawn.turn,/perTurn.set(0,/' evals/criteria.mjs
@@ -185,15 +189,18 @@ eval: cells: FAIL golden claude-interrogate-staged: parallel want pass got fail
 eval: cells: FAIL golden grok-how-complex: parallel want pass got fail
 eval: cells: FAIL golden pi-how-complex: parallel want pass got fail
 eval: FAIL the scripted correct run failed [parallel]
+eval: FAIL the scripted correct opencode run failed [parallel]
 check: FAIL eval (exit=1)
 ### eval scenario names a missing skill
 break: sed -i 's/skill: "interrogate",/skill: "interrogat",/' evals/scenarios.mjs
+unit: FAIL bun run test
 eval: cells: FAIL interrogate-staged: no skill interrogat
-check: FAIL eval (exit=1)
+check: FAIL unit eval (exit=1)
 ### eval scenario loses its negative control
 break: sed -i 's/    control: \["adapter", "answer"\],/    control: [],/' evals/scenarios.mjs
+unit: FAIL bun run test
 eval: cells: FAIL help-models: no negative control
-check: FAIL eval (exit=1)
+check: FAIL unit eval (exit=1)
 ### eval Claude parser reads the first result
 break: sed -i 's/results.at(-1)/results[0]/' evals/hosts/claude.mjs
 eval: cells: FAIL golden claude-interrogate-staged: announced want pass got fail
@@ -201,4 +208,36 @@ check: FAIL eval (exit=1)
 ### eval golden transcript edited
 break: printf x >>evals/golden/claude-how-simple/transcript.jsonl
 check: FAIL eval (exit=1)
+### eval scenario baseline_ref is not a commit
+break: sed -i 's/    id: "how-complex",/    id: "how-complex",\n    baseline_ref: "no-such-ref",/' evals/scenarios.mjs
+unit: FAIL bun run test
+eval: cells: FAIL how-complex: baseline_ref no-such-ref is not a commit
+check: FAIL unit eval (exit=1)
+### eval cells launch without the git and gh shims
+break: sed -i 's/            plan.env.PATH = installShims(/            void installShims(/' evals/cells.mjs
+eval: FAIL the scripted wrong run failed [adapter,spawns,parallel,readonly,announced,noLeftover], want [adapter,spawns,parallel,readonly,announced,noRemoteWrites,noLeftover]
+eval: FAIL shims.log holds [], want the parent's gh pr create and the subagent's git push
+eval: FAIL the scripted wrong opencode run failed [adapter,spawns,parallel], want [adapter,spawns,parallel,noRemoteWrites]
+check: FAIL eval (exit=1)
+### eval opencode parser misses subagent spawns
+break: sed -i 's/c.name === "subagent"/c.name === "task"/' evals/hosts/opencode.mjs
+eval: FAIL the scripted correct opencode run failed [spawns,parallel]
+check: FAIL eval (exit=1)
+### opencode context hook drops the adapter line
+break: sed -i '/event.system.push({ type: "text", text: adapterLine })/d' .opencode/plugins/pstack.js
+unit: FAIL bun run test
+opencode: FAIL the parent's system prompt names 'no adapter', not docs/harness/opencode.md
+opencode: FAIL the comment-sicko child got {"body":true,"adapter":false,"subagent":false,"seen":true}
+opencode: FAIL the poteto-agent child got {"body":true,"adapter":false,"subagent":false,"seen":true}
+eval: FAIL the scripted correct opencode run failed [adapter]
+check: FAIL unit opencode eval (exit=1)
+### eval original-mode regrade ignores the frozen scenario
+break: sed -i 's/    scenario = cell.scenarioSnapshot;/    void 0;/' evals/cells.mjs
+unit: FAIL bun run test
+check: FAIL unit (exit=1)
+### eval gh shim lets writes outside pr and api through
+break: sed -i 's/      \*) write=1 ;;\n    esac ;;\nesac/X/; /checkout|clone|download|watch|help|-h|--help) ;;/{n;s/\*) write=1 ;;/*) ;;/}' evals/shims.mjs
+unit: FAIL bun run test
+eval: FAIL shims.log holds [git push origin HEAD], want the parent's gh pr create and the subagent's git push
+check: FAIL unit eval (exit=1)
 selftest: every break failed its layer
