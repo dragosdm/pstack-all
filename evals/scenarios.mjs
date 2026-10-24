@@ -110,9 +110,3 @@ export function armsFor(scenario, requested) {
   });
   return [...new Set(arms)];
 }
-
-export function expectFor(scenario, host) {
-  const { answer, ...rest } = scenario.expect;
-  const perHost = scenario.hosts[host] ?? {};
-  return { ...rest, ...(answer ? { answer } : {}), ...perHost };
-}

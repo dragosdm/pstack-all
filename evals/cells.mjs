@@ -2,7 +2,7 @@
 // Drives pstack skills in real harness sessions and grades what the harness recorded.
 //   node evals/cells.mjs list
 //   node evals/cells.mjs run --scenario how-simple,help-models --host claude,pi [--arm post,ablate,ref:<sha>,upstream,ab] [--trials 1] [options]
-//   node evals/cells.mjs grade <run dir or cell dir>
+//   node evals/cells.mjs grade <run dir or cell dir> [--criteria current|original]
 //   node evals/cells.mjs check
 // `run` bills each harness's own login. See evals/README.md.
 import { spawn, spawnSync } from "node:child_process";
@@ -13,13 +13,13 @@ import {
 import { homedir, tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { cellOk, grade } from "./criteria.mjs";
+import { cellOk, expectFor, grade } from "./criteria.mjs";
 import { HOSTS } from "./hosts/index.mjs";
-import { SCENARIOS, armsFor, expectFor, scenarioById } from "./scenarios.mjs";
+import { SCENARIOS, armsFor, scenarioById } from "./scenarios.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, "..");
-const DERIVED = new Set(["run.json", "grade.json", "manifest.json"]);
+const DERIVED = new Set(["run.json", "grade.json", "manifest.json", "summary.json", "summary.md"]);
 const BLINDED = /\b(eval|evals|test|judge|rubric|score|benchmark|experiment|candidate|grader)\b/i;
 // Only what a harness loads goes into a cell's plugin tree, so a session can't read this directory's expectations.
 const LOADED_PATHS = ["pstack", ".claude-plugin", ".cursor-plugin", "plugin.json", "package.json", ".pi", "docs/harness"];
@@ -53,21 +53,37 @@ function verifySeal(dir) {
   for (const [file, hash] of Object.entries(files)) if (sha(readFileSync(join(dir, file))) !== hash) throw new Error(`${dir}: ${file} changed after sealing`);
 }
 
+// The code that turns a cell's evidence into verdicts. A cell records this hash so a later grade can tell whether it changed.
+export function gradingSha(hostName) {
+  const files = ["criteria.mjs", "hosts/common.mjs", `hosts/${hostName}.mjs`];
+  return sha(files.map((file) => `${file}\0${readFileSync(join(here, file), "utf8")}`).join("\0"));
+}
+
 // Normalize and grade one sealed cell. Reruns read only the evidence, never a model.
-function gradeCell(dir) {
+// `current` grades with today's scenario. `original` grades with the scenario the cell ran with, and only under the same grading code.
+function gradeCell(dir, criteria = "current") {
   const cell = JSON.parse(readFileSync(join(dir, "cell.json"), "utf8"));
-  const scenario = scenarioById(cell.scenario);
-  if (!scenario) throw new Error(`${dir}: unknown scenario ${cell.scenario}`);
   const host = HOSTS[cell.host];
+  if (!host) throw new Error(`${dir}: unknown host ${cell.host}`);
+  const base = { criteria, arm: cell.arm, reference: Boolean(host.reference), process: cell.process };
+  let scenario = scenarioById(cell.scenario);
+  if (criteria === "original") {
+    const reason = !cell.scenarioSnapshot || !cell.gradingSha
+      ? "sealed before cells recorded their scenario and grading code"
+      : cell.gradingSha !== gradingSha(cell.host) ? "the grading code changed since the cell ran" : null;
+    if (reason) {
+      const result = { ...base, status: "not-assessable", ok: null, reason, verdicts: {} };
+      rmSync(join(dir, "run.json"), { force: true });
+      write(join(dir, "grade.json"), result);
+      return { cell, run: null, result };
+    }
+    scenario = cell.scenarioSnapshot;
+  }
+  if (!scenario) throw new Error(`${dir}: unknown scenario ${cell.scenario}`);
   const run = host.normalize(dir, cell);
   const verdicts = grade(run, expectFor(scenario, cell.host));
-  const result = {
-    ok: cell.process.exit === 0 && !cell.process.timedOut && cellOk(verdicts, cell.arm, scenario.control),
-    arm: cell.arm,
-    reference: Boolean(host.reference),
-    process: cell.process,
-    verdicts,
-  };
+  const ok = cell.process.exit === 0 && !cell.process.timedOut && cellOk(verdicts, cell.arm, scenario.control);
+  const result = { ...base, status: ok ? "ok" : "not ok", ok, verdicts };
   write(join(dir, "run.json"), run);
   write(join(dir, "grade.json"), result);
   return { cell, run, result };
@@ -261,7 +277,7 @@ async function runCells(opts) {
             seed.commit();
             const stagedBefore = scenario.overlay?.staged ? seed.staged() : null;
             const cell = {
-              scenario: id, scenarioSha: sha(JSON.stringify(scenario)), host: hostName, arm, trial,
+              scenario: id, scenarioSha: sha(JSON.stringify(scenario)), scenarioSnapshot: scenario, gradingSha: gradingSha(hostName), host: hostName, arm, trial,
               dir, project, pluginRoot,
               skillsDir: join(pluginRoot, arm === "upstream" ? "skills" : "pstack/skills"),
               adapterPath: host.adapter(pluginRoot, arm),
@@ -287,7 +303,7 @@ async function runCells(opts) {
             write(join(dir, "cell.json"), cell);
             seal(dir);
             const { run, result } = gradeCell(dir);
-            results.push({ dir: relative(out, dir), scenario: id, host: hostName, arm, trial, ok: result.ok, reference: result.reference, cost: run.cost, failing: failing(result) });
+            results.push({ dir: relative(out, dir), scenario: id, host: hostName, arm, trial, status: result.status, ok: result.ok, reference: result.reference, cost: run.cost, failing: failing(result) });
             console.error(`cells:   ${result.ok ? "ok" : "NOT OK"} ${failing(result).join(" ") || ""}`);
           }
         }
@@ -304,9 +320,11 @@ async function runCells(opts) {
 
 const failing = (result) => Object.entries(result.verdicts).filter(([, v]) => v.verdict === "fail").map(([name]) => name);
 
+const STATUS_LABEL = { ok: "ok", "not ok": "NOT OK", "not-assessable": "not-assessable" };
+
 function summarize(out, results) {
   write(join(out, "summary.json"), results);
-  const rows = results.map((r) => `| ${r.scenario} | ${r.host}${r.reference ? " (ref)" : ""} | ${r.arm} | ${r.trial} | ${r.ok ? "ok" : "NOT OK"} | ${r.failing.join(", ")} | ${r.cost === null ? "" : r.cost.toFixed(2)} |`);
+  const rows = results.map((r) => `| ${r.scenario} | ${r.host}${r.reference ? " (ref)" : ""} | ${r.arm} | ${r.trial} | ${STATUS_LABEL[r.status]} | ${r.reason ?? r.failing.join(", ")} | ${r.cost == null ? "" : r.cost.toFixed(2)} |`);
   write(join(out, "summary.md"), ["| scenario | host | arm | trial | result | failing | usd |", "|---|---|---|---|---|---|---|", ...rows, ""].join("\n"));
   console.log(readFileSync(join(out, "summary.md"), "utf8"));
 }
@@ -318,11 +336,14 @@ function cellDirs(dir) {
   return readdirSync(dir).map((d) => join(dir, d)).filter((d) => statSync(d).isDirectory() && existsSync(join(d, "cell.json")));
 }
 
-function regrade(dir) {
+function regrade(dir, criteria) {
   const results = cellDirs(resolve(dir)).map((d) => {
     verifySeal(d);
-    const { cell, run, result } = gradeCell(d);
-    return { dir: relative(resolve(dir), d) || ".", scenario: cell.scenario, host: cell.host, arm: cell.arm, trial: cell.trial, ok: result.ok, reference: result.reference, cost: run.cost, failing: failing(result) };
+    const { cell, run, result } = gradeCell(d, criteria);
+    return {
+      dir: relative(resolve(dir), d) || ".", scenario: cell.scenario, host: cell.host, arm: cell.arm, trial: cell.trial,
+      status: result.status, ok: result.ok, reason: result.reason, reference: result.reference, cost: run?.cost ?? null, failing: failing(result),
+    };
   });
   summarize(resolve(dir), results);
   return results.every((r) => r.ok || r.reference);
@@ -388,7 +409,11 @@ async function main([command, ...rest]) {
       const results = await runCells(parseArgs(rest));
       process.exitCode = results.length === 0 ? 2 : results.every((r) => r.ok || r.reference) ? 0 : 1;
     } else if (command === "grade") {
-      process.exitCode = regrade(rest[0] ?? ".") ? 0 : 1;
+      const flag = rest.indexOf("--criteria");
+      const criteria = flag === -1 ? "current" : rest[flag + 1];
+      if (!["current", "original"].includes(criteria)) throw new Error("--criteria takes current or original");
+      const dirs = rest.filter((_, i) => flag === -1 || (i !== flag && i !== flag + 1));
+      process.exitCode = regrade(dirs[0] ?? ".", criteria) ? 0 : 1;
     } else if (command === "seal") {
       // For hand-built golden cells under evals/golden/.
       seal(resolve(rest[0]));
@@ -398,7 +423,7 @@ async function main([command, ...rest]) {
       if (!problems.length) console.log(`cells: catalog of ${SCENARIOS.length} scenarios is consistent`);
       process.exitCode = problems.length ? 1 : 0;
     } else {
-      console.error("usage: cells.mjs list | run --scenario <ids|all> --host <names> [...] | grade <dir> | check");
+      console.error("usage: cells.mjs list | run --scenario <ids|all> --host <names> [...] | grade <dir> [--criteria current|original] | check");
       process.exitCode = 2;
     }
   } catch (error) {

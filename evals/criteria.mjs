@@ -93,6 +93,12 @@ export const CRITERIA = {
   asks: (run) => check(run.final.slice(-600).includes("?"), run.final.slice(-600).includes("?") ? "answer ends on a question" : "answer asks nothing at the end"),
 };
 
+export function expectFor(scenario, host) {
+  const { answer, ...rest } = scenario.expect;
+  const perHost = scenario.hosts[host] ?? {};
+  return { ...rest, ...(answer ? { answer } : {}), ...perHost };
+}
+
 export function grade(run, expect) {
   const verdicts = {};
   for (const [name, arg] of Object.entries(expect)) {
