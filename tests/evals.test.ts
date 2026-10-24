@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
 import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -10,8 +10,16 @@ import { installShims, withoutCredentials } from "../evals/shims.mjs";
 
 const repo = join(import.meta.dir, "..");
 const cells = (args: string[], env: Record<string, string> = {}) =>
-  spawnSync(Bun.which("node")!, [join(repo, "evals/cells.mjs"), ...args], { cwd: repo, encoding: "utf8", env: { ...process.env, ...env } });
-const scratch = () => mkdtempSync(join(tmpdir(), "evals-"));
+  spawnSync(Bun.which("node")!, [join(repo, "evals/cells.mjs"), ...args], { cwd: repo, encoding: "utf8", env: { PATH: process.env.PATH!, ...env } });
+const made: string[] = [];
+const scratch = () => {
+  const dir = mkdtempSync(join(tmpdir(), "evals-"));
+  made.push(dir);
+  return dir;
+};
+afterAll(() => {
+  for (const dir of made) rmSync(dir, { recursive: true, force: true });
+});
 const golden = join(repo, "evals/golden/claude-how-simple");
 const scenario = SCENARIOS.find((s) => s.id === "how-simple")!;
 
@@ -119,7 +127,7 @@ describe("git and gh shims", () => {
   const PATH = installShims(join(dir, "bin"), log);
   const run = (cmd: string, ...args: string[]) => {
     const before = existsSync(log) ? readFileSync(log, "utf8") : "";
-    const r = spawnSync(cmd, args, { cwd: dir, encoding: "utf8", env: { ...process.env, PATH } });
+    const r = spawnSync(cmd, args, { cwd: dir, encoding: "utf8", env: { PATH } });
     const logged = (existsSync(log) ? readFileSync(log, "utf8") : "").slice(before.length).trim();
     return { exit: r.status, out: r.stdout, err: r.stderr, logged };
   };
@@ -171,7 +179,7 @@ describe("git and gh shims", () => {
     const called = join(dir, "ssh-called");
     const ssh = join(dir, "record-ssh");
     writeFileSync(ssh, `#!/bin/sh\ntouch ${called}\nexit 1\n`, { mode: 0o755 });
-    const user: Record<string, string> = { ...(process.env as Record<string, string>), PATH, GH_TOKEN: "secret", GIT_SSH_COMMAND: ssh };
+    const user: Record<string, string> = { PATH, GH_TOKEN: "secret", GIT_SSH_COMMAND: ssh };
     const offline = { ...user };
     for (const [key, value] of Object.entries(withoutCredentials(join(dir, "gh-config")))) value === undefined ? delete offline[key] : (offline[key] = value);
     const repo = mkdtempSync(join(dir, "alias-"));
