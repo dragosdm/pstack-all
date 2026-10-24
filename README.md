@@ -48,13 +48,19 @@ Updating the base is a deliberate step. Copy the new upstream tree, rewrite `bas
 ## Check
 
 ```
+bun run test
 PSTACK_UPSTREAM_DIR=<cursor/plugins clone> scripts/check.sh
 ```
 
-`scripts/check.sh` runs eight layers and fails if any layer fails:
+`bun run test` is the fast lane. It runs the unit tests in `tests/` in one bun process in well under a second, with no harness binary, login or network. Each test drives the opencode plugin, the Pi extension or the manifest generator through the interface its harness uses, with a mock in place of the harness. The script lives in the `sync-manifests.mjs` table, because `package.json` is generated. A test writes only inside its own `mktemp` directory and never reads the user's home config.
+
+A deterministic check that needs no harness binary belongs in `bun run test`. One that drives a real harness belongs in a `check.sh` layer. Skill behavior needs a model, so it belongs in the billed eval cells.
+
+`scripts/check.sh` is the full local lane. It runs nine layers and fails if any layer fails:
 
 - `base` runs `scripts/check-base.sh`. `pstack/` must equal the lock, and its tests must keep their counts.
 - `manifests` runs `node scripts/sync-manifests.mjs --check`. The entry files must equal what the script renders.
+- `unit` runs `scripts/check-unit.sh`, which runs `bun run test`. Every unit test must pass.
 - `catalog` runs `scripts/check-catalog.sh`. Upstream's validator must pass on the Cursor catalog, and nothing may hide pstack from Grok Bot.
 - `grok` runs `scripts/check-grok.sh`. The repo root must install through the root `plugin.json` with the same inventory as `pstack/`.
 - `claude` runs `scripts/check-claude.sh`. Both Claude manifests must pass `validate --strict`. The repo root must install with every skill, agent file and the adapter hook, and the installed `pstack/` must equal the repo's. `PSTACK_UPSTREAM_DIR` adds a comparison with upstream's Claude tree. `PSTACK_CLAUDE_RUNTIME=1` adds a billed model probe.
@@ -64,4 +70,4 @@ PSTACK_UPSTREAM_DIR=<cursor/plugins clone> scripts/check.sh
 
 Without `PSTACK_UPSTREAM_DIR` the locks are trusted as written. Needs `git`, `bun`, `node`, `npm`, `jq`, `column`, `grok`, `claude`, `pi`, `opencode`, `curl`, and `tmux`. Billed cells also need `cursor-agent` for the Cursor reference column. The baseline was recorded with bun 1.3.10 and node v26.8.2. The 31 statechart tests that need TLC are skipped without Java and `TLA2TOOLS`.
 
-`scripts/selftest-check.sh` breaks a throwaway copy twenty-nine ways and requires each break to fail its own layer. Its last output is in `.audit/check-selftest.txt`. `.audit/base-selftest.txt` shows the base check failing on four deliberate breaks.
+`scripts/selftest-check.sh` breaks a throwaway copy thirty-five ways and requires each break to fail its own layer. Its last output is in `.audit/check-selftest.txt`. `.audit/base-selftest.txt` shows the base check failing on four deliberate breaks.
