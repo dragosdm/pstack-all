@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Drives pstack skills in real harness sessions and grades what the harness recorded.
 //   node evals/cells.mjs list
-//   node evals/cells.mjs run --scenario how-simple,help-models --host claude,pi [--arm post,ablate] [--trials 1] [options]
+//   node evals/cells.mjs run --scenario how-simple,help-models --host claude,pi [--arm post,ablate,ref:<sha>,upstream,ab] [--trials 1] [options]
 //   node evals/cells.mjs grade <run dir or cell dir>
 //   node evals/cells.mjs check
 // `run` bills each harness's own login. See evals/README.md.
@@ -15,7 +15,7 @@ import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { cellOk, grade } from "./criteria.mjs";
 import { HOSTS } from "./hosts/index.mjs";
-import { SCENARIOS, expectFor, scenarioById } from "./scenarios.mjs";
+import { SCENARIOS, armsFor, expectFor, scenarioById } from "./scenarios.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, "..");
@@ -103,6 +103,10 @@ function parseArgs(argv) {
   }
   // Every cell bills a session, so nothing runs without an explicit selection.
   if (!opts.scenario?.length || !opts.host?.length) throw new Error("run needs --scenario <ids|all> and --host <names>");
+  if (opts.arm.includes("ab")) {
+    const missing = opts.scenario.filter((id) => !scenarioById(id)?.baseline_ref);
+    if (missing.length) throw new Error(`--arm ab needs a baseline_ref, and ${missing.join(", ")} ${missing.length === 1 ? "has" : "have"} none`);
+  }
   return opts;
 }
 
@@ -236,7 +240,7 @@ async function runCells(opts) {
         const host = HOSTS[hostName];
         if (!host) throw new Error(`unknown host ${hostName}`);
         if (!scenario.hosts[hostName]) continue;
-        for (const arm of opts.arm) {
+        for (const arm of armsFor(scenario, opts.arm)) {
           const armKind = arm.startsWith("ref:") ? "ref" : arm;
           if (!host.arms.includes(armKind)) continue;
           if (!trees.has(`${hostName}:${arm}`)) {
@@ -324,10 +328,10 @@ function regrade(dir) {
   return results.every((r) => r.ok || r.reference);
 }
 
-function checkCatalog() {
+export function checkCatalog(scenarios = SCENARIOS) {
   const problems = [];
   const ids = new Set();
-  for (const s of SCENARIOS) {
+  for (const s of scenarios) {
     if (ids.has(s.id)) problems.push(`${s.id}: duplicate id`);
     ids.add(s.id);
     if (!existsSync(join(repo, "pstack/skills", s.skill, "SKILL.md"))) problems.push(`${s.id}: no skill ${s.skill}`);
@@ -335,6 +339,8 @@ function checkCatalog() {
     if (s.overlay && !existsSync(join(here, "overlays", s.overlay.dir))) problems.push(`${s.id}: no overlay ${s.overlay.dir}`);
     if (BLINDED.test(s.prompt)) problems.push(`${s.id}: prompt names the observation (${BLINDED.exec(s.prompt)[0]})`);
     if (!s.control?.length) problems.push(`${s.id}: no negative control`);
+    const baseline = s.baseline_ref && spawnSync("git", ["-C", repo, "rev-parse", "--verify", "--quiet", `${s.baseline_ref}^{commit}`]);
+    if (baseline && baseline.status !== 0) problems.push(`${s.id}: baseline_ref ${s.baseline_ref} is not a commit`);
     for (const host of Object.keys(s.hosts)) {
       if (!HOSTS[host]) { problems.push(`${s.id}: unknown host ${host}`); continue; }
       const expect = expectFor(s, host);
@@ -374,28 +380,31 @@ function checkGolden() {
   return problems;
 }
 
-const [command, ...rest] = process.argv.slice(2);
-try {
-  if (command === "list") {
-    for (const s of SCENARIOS) console.log(`${s.id.padEnd(20)} ${s.skill.padEnd(14)} ${Object.keys(s.hosts).join(",").padEnd(18)} ${s.why}`);
-  } else if (command === "run") {
-    const results = await runCells(parseArgs(rest));
-    process.exitCode = results.length === 0 ? 2 : results.every((r) => r.ok || r.reference) ? 0 : 1;
-  } else if (command === "grade") {
-    process.exitCode = regrade(rest[0] ?? ".") ? 0 : 1;
-  } else if (command === "seal") {
-    // For hand-built golden cells under evals/golden/.
-    seal(resolve(rest[0]));
-  } else if (command === "check") {
-    const problems = [...checkCatalog(), ...checkGolden()];
-    for (const p of problems) console.log(`cells: FAIL ${p}`);
-    if (!problems.length) console.log(`cells: catalog of ${SCENARIOS.length} scenarios is consistent`);
-    process.exitCode = problems.length ? 1 : 0;
-  } else {
-    console.error("usage: cells.mjs list | run --scenario <ids|all> --host <names> [...] | grade <dir> | check");
+async function main([command, ...rest]) {
+  try {
+    if (command === "list") {
+      for (const s of SCENARIOS) console.log(`${s.id.padEnd(20)} ${s.skill.padEnd(14)} ${Object.keys(s.hosts).join(",").padEnd(18)} ${s.why}`);
+    } else if (command === "run") {
+      const results = await runCells(parseArgs(rest));
+      process.exitCode = results.length === 0 ? 2 : results.every((r) => r.ok || r.reference) ? 0 : 1;
+    } else if (command === "grade") {
+      process.exitCode = regrade(rest[0] ?? ".") ? 0 : 1;
+    } else if (command === "seal") {
+      // For hand-built golden cells under evals/golden/.
+      seal(resolve(rest[0]));
+    } else if (command === "check") {
+      const problems = [...checkCatalog(), ...checkGolden()];
+      for (const p of problems) console.log(`cells: FAIL ${p}`);
+      if (!problems.length) console.log(`cells: catalog of ${SCENARIOS.length} scenarios is consistent`);
+      process.exitCode = problems.length ? 1 : 0;
+    } else {
+      console.error("usage: cells.mjs list | run --scenario <ids|all> --host <names> [...] | grade <dir> | check");
+      process.exitCode = 2;
+    }
+  } catch (error) {
+    console.error(`cells: ${error.message}`);
     process.exitCode = 2;
   }
-} catch (error) {
-  console.error(`cells: ${error.message}`);
-  process.exitCode = 2;
 }
+
+if (import.meta.main) await main(process.argv.slice(2));

@@ -1,6 +1,8 @@
 // One row per behavior. `expect` maps criteria (criteria.mjs) to their arguments; `answer` and other per-host
 // arguments live under `hosts`. `control` names the criteria the ablate arm (adapter delivery removed) must fail.
 // Prompts are what a user types: no mention of how the run is observed.
+// An optional `baseline_ref` names the commit before the change the scenario guards, for `--arm ab`.
+// No row sets one: before 0c59caa the Pi tree kept no child records to grade, and the Claude hook is unchanged since it was added.
 
 export const SCENARIOS = [
   {
@@ -98,6 +100,16 @@ export const SCENARIOS = [
 ];
 
 export const scenarioById = (id) => SCENARIOS.find((s) => s.id === id);
+
+// `ab` is the scenario's baseline next to the working tree. A scenario without a baseline has no A/B pair.
+export function armsFor(scenario, requested) {
+  const arms = requested.flatMap((arm) => {
+    if (arm !== "ab") return [arm];
+    if (!scenario.baseline_ref) throw new Error(`--arm ab needs a baseline_ref, and ${scenario.id} has none`);
+    return [`ref:${scenario.baseline_ref}`, "post"];
+  });
+  return [...new Set(arms)];
+}
 
 export function expectFor(scenario, host) {
   const { answer, ...rest } = scenario.expect;
