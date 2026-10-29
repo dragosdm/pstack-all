@@ -89,7 +89,7 @@ Validate the Claude plugin with both paths, `.claude-plugin/marketplace.json` an
 4. `claude plugin validate --strict` on both Claude manifests, with `@anthropic-ai/claude-code` pinned at `CLAUDE_CODE_VERSION`
 5. `bun run test`
 
-The workflow pins bun and node to the toolchain the base baseline was recorded with, because `check-base.sh` compares upstream's own suite counts. It pins the claude CLI so a new validator rule cannot fail CI without a repo change. Bump a pin on purpose, in its own change.
+The workflow pins the runner image to `ubuntu-26.04`, and bun and node to the toolchain the base baseline was recorded with, because `check-base.sh` compares upstream's own suite counts. It pins the claude CLI so a new validator rule cannot fail CI without a repo change. Bump a pin on purpose, in its own change.
 
 The `grok`, `pi`, `opencode` and `eval` layers stay local, and CI runs only the validate half of the `claude` layer. Running grok, pi and opencode headless on a GitHub runner is unverified (`decisions.tsv`, 2026-10-24T06:20:33Z). Run `scripts/check.sh` locally before you hand over a change. Each final check in the decision log ran on the exact state handed over.
 
