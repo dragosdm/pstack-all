@@ -59,7 +59,8 @@ export const opencode = {
     return {
       host: "opencode",
       loaded:
-        plugin?.state?.status === "active" && plugin.source?.path === join(cell.pluginRoot, "index.js")
+        // opencode 2.1.4 reports the resolved package.json main, 2.2.0 the package path the config lists.
+        plugin?.state?.status === "active" && [cell.pluginRoot, join(cell.pluginRoot, "index.js")].includes(plugin.source?.path)
         && calls.some((c) => c.name === "skill" && c.metadata.directory?.startsWith(`${cell.skillsDir}/`)),
       adapterRead: calls.some((c) => c.name === "read" && c.input.path === cell.adapterPath),
       spawns: calls

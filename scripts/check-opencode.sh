@@ -45,11 +45,12 @@ for _ in $(seq 150); do
 done
 plugin="$(api /api/plugin 2>/dev/null | jq -c '.data[] | select(.id == "pstack") | {source, status: .state.status}' || true)"
 echo "opencode: $("$opencode" --version), the repo root is a local plugin in a throwaway XDG config"
-if [[ "$plugin" == "$(jq -nc --arg path "$root/index.js" '{source: {type: "local", path: $path}, status: "active"}')" ]]; then
-  echo "opencode: /api/plugin lists pstack active, loaded from index.js"
+# opencode 2.1.4 reports the resolved package.json main, 2.2.0 the package path the config lists.
+if jq -e --arg root "$root" '. == {source: {type: "local", path: (.source.path | select(. == $root or . == "\($root)/index.js"))}, status: "active"}' <<<"${plugin:-null}" >/dev/null; then
+  echo "opencode: /api/plugin lists pstack active from the repo root"
 else
   echo "opencode: FAIL /api/plugin lists pstack as [${plugin}]"
-  grep -E 'level=(ERROR|WARN)' "$work/serve.log" | head -5
+  { grep -E 'level=(ERROR|WARN)' "$work/serve.log" || true; } | head -5
   status=1
 fi
 if grep -E 'level=(ERROR|WARN)' "$work/serve.log" | grep -qiE 'plugin|pstack'; then
