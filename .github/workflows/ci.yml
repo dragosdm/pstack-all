@@ -10,7 +10,7 @@ jobs:
   # The deterministic lane: no model, login or network beyond installing the pinned tools. The layers that drive the
   # real grok, pi and opencode binaries stay in scripts/check.sh, run locally; see AGENTS.md "What belongs where".
   check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
 
     env:
