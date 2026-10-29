@@ -66,13 +66,29 @@ opencode's compatibility loader also reads `~/.claude/skills` and `~/.agents/ski
 
 It kills the server and the mock on exit. Set `OPENCODE_BIN` to choose the binary.
 
+## Cells
+
+`evals/hosts/opencode.mjs` runs a pstack skill in opencode as a graded cell, with the plugin loaded natively. `evals/README.md` is the reference. The cell:
+
+- puts `HOME` and every XDG dir in the cell's workbench folder and writes an `opencode.json` whose `plugins` entry is the cell's tree. `--opencode-config` merges JSON into it, such as a provider, and `--opencode-model` sets `model`.
+- denies `question`, `webfetch` and `websearch`. Other tools keep opencode's defaults.
+- starts `opencode serve` in the project through `evals/hosts/opencode-run.mjs` and posts `pstack:<skill>` to `/api/session/<id>/command`, because `opencode run "/pstack:how"` sends the text as is. It rejects any permission ask. It stops when no session is active, the root's inbox is empty, and the root's last message is `idle`, three polls in a row.
+- exports the root session and every child with `/api/experimental/session/<id>/export`, one JSON line each, after the `/api/plugin` record.
+
+`normalize` takes `loaded` from the plugin record and a `skill` call whose `metadata.directory` is under the tree, the adapter read from a `read` call on `docs/harness/opencode.md`, spawns from `subagent` calls with `explore` as read-only, and the cost from each session's `info.cost`. `ablate` drops the adapter line from the context hook. opencode is a reference column.
+
+`scripts/check-eval.sh` runs two cells against `scripts/opencode-mock-model.mjs` in script mode. A correct `how-complex` run loads `how`, reads the adapter, starts three `explore` subagents in one message and an explainer after them, and names the session model. It passes every criterion. A wrong run loads `how`, runs `git push` with the shell tool and answers. It fails exactly `adapter`, `spawns`, `parallel` and `noRemoteWrites`, so the shell tool inherits the cell's git shim. Mock runs also showed that the ablate arm fails `adapter`, that `ref:6601813` loads, and that `ref:2146173`, from before the plugin, does not.
+
 ## Not verified
 
 - opencode 1.x and the V1 plugin API. The plugin has no `server()` export.
 - Install from the git URL. Only a local path was loaded.
-- A billed model run. No real model has read the adapter or followed a skill in opencode.
+- A billed model run. No real model has read the adapter or followed a skill in opencode. No billed opencode cell has run, so the column stays a reference.
+- A billed cell's login. The cell's data dir starts empty, so a login that opencode keeps in its own data dir does not carry over. Only a provider given in `--opencode-config` has been used.
+- How a cell ends when the parent waits on `background: true` subagents. The scripted cells ran every subagent in the foreground. A gap between a child's end and the parent waking could end the cell early.
+- The `explore` mapping for `readonly: true` and the `pstack-worktrees/` prompt check, against a real model.
 - The worktree mapping for `environment: "cloud"` end to end. No run created, used and removed one.
-- Slash dispatch in the TUI. `opencode run "/pstack:how"` sends the text as is, so the check posts the command over the API.
+- Slash dispatch in the TUI. `opencode run "/pstack:how"` sends the text as is, so the check and the cells post the command over the API. `opencode run` 2.1.4 has no flag that dispatches a command.
 - `background: true`, `sessionID` resume, explicit `model` values and the `todo` tool. The scripted run used none of them.
 
 ## Gotchas

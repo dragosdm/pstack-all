@@ -1,5 +1,5 @@
 {
   "why": "Grok loaded the installed copy, read how's references, and started three explorers in one model turn, then a synthesizer. spawn_subagent has no read-only field, so nothing was read-only. pstack-all has no Grok adapter. The free usage limit ended the run with an error, so the cell is not ok whatever the verdicts.",
   "ok": false,
-  "verdicts": { "loaded": "pass", "adapter": "n/a", "spawns": "pass", "parallel": "pass", "readonly": "fail", "modelsValid": "n/a", "announced": "n/a", "clean": "pass", "rulesUntouched": "n/a" }
+  "verdicts": { "loaded": "pass", "adapter": "n/a", "spawns": "pass", "parallel": "pass", "readonly": "fail", "modelsValid": "n/a", "announced": "n/a", "clean": "pass", "rulesUntouched": "n/a", "noRemoteWrites": "n/a" }
 }

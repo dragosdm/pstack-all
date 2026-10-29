@@ -12,6 +12,7 @@ layer() {
 
 layer base scripts/check-base.sh
 layer manifests node scripts/sync-manifests.mjs --check
+layer unit scripts/check-unit.sh
 layer catalog scripts/check-catalog.sh
 layer grok scripts/check-grok.sh
 layer claude scripts/check-claude.sh
@@ -24,4 +25,4 @@ if ((${#failed[@]} > 0)); then
   echo "check: FAIL ${failed[*]}"
   exit 1
 fi
-echo "check: PASS base manifests catalog grok claude pi opencode eval"
+echo "check: PASS base manifests unit catalog grok claude pi opencode eval"

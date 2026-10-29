@@ -21,14 +21,36 @@ rpc() {
 echo "pi: $("$pi" --version), installed the repo root into a throwaway PI_CODING_AGENT_DIR"
 
 # The user's own ~/.agents/skills also load, so keep only skills read from this repo's pstack/skills.
-have_skills="$(rpc '{"type":"get_commands"}' | jq -r --arg dir "$root/pstack/skills/" '
-  select(.command == "get_commands") | .data.commands[]
-  | select(.source == "skill" and (.sourceInfo.path | startswith($dir))) | .name | ltrimstr("skill:")' | sort | paste -sd, -)"
+pstack_skills() { jq -r --arg dir "$root/pstack/skills/" 'select(.command == "get_commands") | .data.commands[]
+  | select(.source == "skill" and (.sourceInfo.path | startswith($dir))) | .name | ltrimstr("skill:")' "$1" | sort | paste -sd, -; }
+# Every name, suffixed or not, so a duplicate registration (/pstack:how:1) shows up as a mismatch.
+pstack_commands() { jq -r 'select(.command == "get_commands") | .data.commands[]
+  | select(.source == "extension" and (.name | startswith("pstack:"))) | .name | ltrimstr("pstack:")' "$1" | sort | paste -sd, -; }
+rpc '{"type":"get_commands"}' >"$work/commands.json"
+have_skills="$(pstack_skills "$work/commands.json")"
 want_skills="$(find pstack/skills -mindepth 2 -maxdepth 2 -name SKILL.md | cut -d/ -f3 | sort | paste -sd, -)"
 if [[ -n "$have_skills" && "$have_skills" == "$want_skills" ]]; then
   echo "pi: get_commands lists $(tr ',' '\n' <<<"$have_skills" | wc -l) skills from pstack/skills, the same names as on disk"
 else
   echo "pi: FAIL get_commands lists pstack skills [$have_skills], pstack/skills has [$want_skills]"
+  status=1
+fi
+have_commands="$(pstack_commands "$work/commands.json")"
+if [[ "$have_commands" == "$want_skills" ]]; then
+  echo "pi: get_commands lists an extension command pstack:<name> for every pstack skill, so they show in the / menu"
+else
+  echo "pi: FAIL get_commands lists pstack:<name> commands [$have_commands], want [$want_skills]"
+  status=1
+fi
+# The extension parses each description itself, at load, so it must agree with Pi's own parse of the skill.
+differ="$(jq -rs '[.[] | select(.command == "get_commands") | .data.commands[]] as $all
+  | ($all | map(select(.source == "skill")) | map({key: (.name | ltrimstr("skill:")), value: .description}) | from_entries) as $skill
+  | $all[] | select(.source == "extension" and (.name | startswith("pstack:")))
+  | select(.description != $skill[.name | ltrimstr("pstack:")]) | .name' "$work/commands.json" | paste -sd, -)"
+if [[ -n "$have_commands" && -z "$differ" ]]; then
+  echo "pi: every pstack:<name> has the same description as Pi's skill:<name>"
+else
+  echo "pi: FAIL pstack:<name> descriptions differ from Pi's skill:<name> for [$differ]"
   status=1
 fi
 if grep -qiE 'error|failed' "$work/rpc.err"; then
@@ -40,14 +62,27 @@ fi
 # Inside this checkout, with nothing installed, Pi still auto-loads the trusted project's .pi/extensions but not the
 # package.json pi.skills, so the skills must come from the extension or the adapter line arrives with no skills.
 mkdir -p "$work/bare"
-in_repo="$((echo '{"type":"get_commands"}'; sleep 4) | PI_CODING_AGENT_DIR="$work/bare" PI_OFFLINE=1 timeout 60 "$pi" --mode rpc \
-  --no-session --approve 2>/dev/null | jq -r --arg dir "$root/pstack/skills/" '
-  select(.command == "get_commands") | .data.commands[]
-  | select(.source == "skill" and (.sourceInfo.path | startswith($dir))) | .name | ltrimstr("skill:")' | sort | paste -sd, - || true)"
-if [[ "$in_repo" == "$want_skills" ]]; then
-  echo "pi: run inside the checkout with nothing installed, get_commands still lists every pstack skill"
+(echo '{"type":"get_commands"}'; sleep 4) | PI_CODING_AGENT_DIR="$work/bare" PI_OFFLINE=1 timeout 60 "$pi" --mode rpc \
+  --no-session --approve >"$work/bare.json" 2>/dev/null || true
+in_repo="$(pstack_skills "$work/bare.json") $(pstack_commands "$work/bare.json")"
+if [[ "$in_repo" == "$want_skills $want_skills" ]]; then
+  echo "pi: run inside the checkout with nothing installed, get_commands still lists every pstack skill and pstack:<name>"
 else
-  echo "pi: FAIL run inside the checkout with nothing installed, get_commands lists pstack skills [$in_repo]"
+  echo "pi: FAIL run inside the checkout with nothing installed, get_commands lists pstack skills and commands [$in_repo]"
+  status=1
+fi
+# Inside this checkout with pstack also installed from another path, such as a git install, the extension loads twice,
+# and Pi would suffix both copies' commands (/pstack:how:1, /pstack:how:2). The same path loads once, so use a copy.
+mkdir -p "$work/copy" "$work/twice"
+git ls-files -co --exclude-standard | tar -cf - -T - | tar -xf - -C "$work/copy"
+PI_CODING_AGENT_DIR="$work/twice" "$pi" install "$work/copy" >/dev/null 2>&1 || true
+(echo '{"type":"get_commands"}'; sleep 4) | PI_CODING_AGENT_DIR="$work/twice" PI_OFFLINE=1 timeout 60 "$pi" --mode rpc --no-session \
+  --approve >"$work/twice.json" 2>/dev/null || true
+twice="$(pstack_commands "$work/twice.json")"
+if [[ "$twice" == "$want_skills" ]]; then
+  echo "pi: run inside the checkout with pstack installed from another path too, each pstack:<name> is listed once, without a suffix"
+else
+  echo "pi: FAIL run inside the checkout with pstack installed from another path too, pstack:<name> commands are [$twice]"
   status=1
 fi
 

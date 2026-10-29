@@ -1,5 +1,5 @@
 {
   "why": "Claude took the simple path: read claude-code.md, one Agent with subagent_type Explore and model opus/xhigh (the how explainer default), workspace untouched. Rule files were not recorded in this probe.",
   "ok": true,
-  "verdicts": { "loaded": "pass", "adapter": "pass", "spawns": "pass", "readonly": "pass", "modelsValid": "pass", "announced": "n/a", "clean": "pass", "rulesUntouched": "n/a" }
+  "verdicts": { "loaded": "pass", "adapter": "pass", "spawns": "pass", "readonly": "pass", "modelsValid": "pass", "announced": "n/a", "clean": "pass", "rulesUntouched": "n/a", "noRemoteWrites": "n/a" }
 }

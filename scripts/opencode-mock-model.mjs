@@ -1,18 +1,44 @@
 #!/usr/bin/env node
-// A scripted OpenAI-compatible model for scripts/check-opencode.sh. No network, no billing.
-// The parent turn "spawn" calls the subagent tool for comment-sicko, then for poteto-agent. Each child answers at once.
-// A /pstack:<name> command turn calls the skill tool for that skill. Every request is logged for the check to grade.
-import { appendFileSync, writeFileSync } from "node:fs"
+// A scripted OpenAI-compatible model for scripts/check-opencode.sh and the opencode cells in scripts/check-eval.sh.
+// No network, no billing. Every request is logged for the check to grade.
+// Without a script, the parent turn "spawn" calls the subagent tool for comment-sicko, then for poteto-agent, and each
+// child answers at once. A /pstack:<name> command turn calls the skill tool for that skill.
+// With a script, a JSON list played one step per parent turn: {skill: "<id>"}, {read: "adapter"}, {shell: "<command>"},
+// {spawn: [{agent, description, prompt}, ...]} as one message, or {text: "<answer>"}. A child whose prompt holds
+// "RUN: <command>" runs it with the shell tool first.
+import { appendFileSync, readFileSync, writeFileSync } from "node:fs"
 import { createServer } from "node:http"
 
-const [portFile, logFile] = process.argv.slice(2)
+const [portFile, logFile, scriptFile] = process.argv.slice(2)
+const script = scriptFile ? JSON.parse(readFileSync(scriptFile, "utf8")) : null
 
 const text = (content) => (typeof content === "string" ? content : (content ?? []).map((part) => part.text ?? "").join(""))
 const call = (name, args) => ({ toolCall: { id: `call_${name}_${args.agent ?? args.id ?? ""}`, name, arguments: JSON.stringify(args) } })
 
+function scripted(messages) {
+  const users = messages.filter((m) => m.role === "user").map((m) => text(m.content)).join("\n")
+  const last = messages.at(-1)
+  const turn = messages.filter((m) => m.role === "assistant").length
+  if (!users.includes("Load and execute the `")) {
+    const run = /RUN: (.+)/.exec(users)?.[1]
+    return run && last.role !== "tool" ? call("shell", { command: run }) : { content: "CHILD done" }
+  }
+  const step = script[turn] ?? { text: "done" }
+  if (step.text !== undefined) return { content: step.text }
+  if (step.skill) return call("skill", { id: step.skill })
+  if (step.shell) return { toolCall: { id: `call_shell_${turn}`, name: "shell", arguments: JSON.stringify({ command: step.shell }) } }
+  if (step.read) {
+    const system = messages.filter((m) => m.role === "system").map((m) => text(m.content)).join("\n")
+    const path = /read (\/\S+\.md) once per session/.exec(system)?.[1] ?? "missing-adapter-line"
+    return { toolCall: { id: `call_read_${turn}`, name: "read", arguments: JSON.stringify({ path }) } }
+  }
+  return { toolCalls: step.spawn.map((args, i) => ({ id: `call_subagent_${turn}_${i}`, name: "subagent", arguments: JSON.stringify(args) })) }
+}
+
 function reply(body) {
   const messages = body.messages ?? []
   if (!(body.tools ?? []).length) return { content: "Title" }
+  if (script) return scripted(messages)
   const users = messages.filter((m) => m.role === "user").map((m) => text(m.content)).join("\n")
   const last = messages.at(-1)
   if (users.includes("CHILD-PROBE")) return { content: "CHILD done" }
@@ -35,10 +61,11 @@ const server = createServer((req, res) => {
     const out = reply(body)
     appendFileSync(logFile, `${JSON.stringify({ request: body, reply: out })}\n`)
     res.writeHead(200, { "content-type": "text/event-stream" })
-    const delta = out.toolCall
-      ? { role: "assistant", tool_calls: [{ index: 0, id: out.toolCall.id, type: "function", function: { name: out.toolCall.name, arguments: out.toolCall.arguments } }] }
+    const calls = out.toolCalls ?? (out.toolCall ? [out.toolCall] : [])
+    const delta = calls.length
+      ? { role: "assistant", tool_calls: calls.map((c, index) => ({ index, id: c.id, type: "function", function: { name: c.name, arguments: c.arguments } })) }
       : { role: "assistant", content: out.content }
-    res.end(chunk(delta, null) + chunk({}, out.toolCall ? "tool_calls" : "stop") + "data: [DONE]\n\n")
+    res.end(chunk(delta, null) + chunk({}, calls.length ? "tool_calls" : "stop") + "data: [DONE]\n\n")
   })
 })
 server.listen(0, "127.0.0.1", () => writeFileSync(portFile, String(server.address().port)))

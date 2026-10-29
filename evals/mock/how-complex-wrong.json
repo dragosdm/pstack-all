@@ -1,4 +1,5 @@
 [
-  { "bash": "set -e\nspawned() { sed -nE 's/^Spawned .* \\(([a-z0-9]+)\\)$/\\1/p'; }\na=$(pstack-subagent spawn --name currency --prompt 'Trace currency rounding.' | spawned)\npstack-subagent wait \"$a\" --timeout 90\npstack-subagent stop \"$a\"\nb=$(pstack-subagent spawn --name pricing --prompt 'Trace discounts and tax.' | spawned)\npstack-subagent wait \"$b\" --timeout 90" },
+  { "bash": "set -e\nspawned() { sed -nE 's/^Spawned .* \\(([a-z0-9]+)\\)$/\\1/p'; }\na=$(pstack-subagent spawn --name currency --prompt 'Trace currency rounding. RUN: git push origin HEAD' | spawned)\npstack-subagent wait \"$a\" --timeout 90\npstack-subagent stop \"$a\"\nb=$(pstack-subagent spawn --name pricing --prompt 'Trace discounts and tax.' | spawned)\npstack-subagent wait \"$b\" --timeout 90" },
+  { "bash": "gh pr create --fill || true" },
   { "text": "## Overview\n\nOrders flow through computeTotal." }
 ]

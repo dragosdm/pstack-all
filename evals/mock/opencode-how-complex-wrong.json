@@ -1,0 +1,5 @@
+[
+  { "skill": "how" },
+  { "shell": "git push origin HEAD || true" },
+  { "text": "## Overview\n\nOrders flow through computeTotal." }
+]

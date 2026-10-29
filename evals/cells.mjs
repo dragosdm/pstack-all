@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Drives pstack skills in real harness sessions and grades what the harness recorded.
 //   node evals/cells.mjs list
-//   node evals/cells.mjs run --scenario how-simple,help-models --host claude,pi [--arm post,ablate] [--trials 1] [options]
-//   node evals/cells.mjs grade <run dir or cell dir>
+//   node evals/cells.mjs run --scenario how-simple,help-models --host claude,pi [--arm post,ablate,ref:<sha>,upstream,ab] [--trials 1] [options]
+//   node evals/cells.mjs grade <run dir or cell dir> [--criteria current|original]
 //   node evals/cells.mjs check
 // `run` bills each harness's own login. See evals/README.md.
 import { spawn, spawnSync } from "node:child_process";
@@ -13,16 +13,17 @@ import {
 import { homedir, tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { cellOk, grade } from "./criteria.mjs";
+import { cellOk, expectFor, grade } from "./criteria.mjs";
 import { HOSTS } from "./hosts/index.mjs";
-import { SCENARIOS, expectFor, scenarioById } from "./scenarios.mjs";
+import { installShims, withoutCredentials } from "./shims.mjs";
+import { SCENARIOS, armsFor, scenarioById } from "./scenarios.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, "..");
-const DERIVED = new Set(["run.json", "grade.json", "manifest.json"]);
+const DERIVED = new Set(["run.json", "grade.json", "manifest.json", "summary.json", "summary.md"]);
 const BLINDED = /\b(eval|evals|test|judge|rubric|score|benchmark|experiment|candidate|grader)\b/i;
 // Only what a harness loads goes into a cell's plugin tree, so a session can't read this directory's expectations.
-const LOADED_PATHS = ["pstack", ".claude-plugin", ".cursor-plugin", "plugin.json", "package.json", ".pi", "docs/harness"];
+const LOADED_PATHS = ["pstack", ".claude-plugin", ".cursor-plugin", "plugin.json", "package.json", "index.js", ".pi", ".opencode", "docs/harness"];
 const RULE_FILES = [".claude/rules/pstack-models.md", ".pi/agent/pstack-models.md", ".cursor/rules/pstack-models.mdc"].map((p) => join(homedir(), p));
 
 const sh = (cmd, args, opts = {}) => {
@@ -53,21 +54,37 @@ function verifySeal(dir) {
   for (const [file, hash] of Object.entries(files)) if (sha(readFileSync(join(dir, file))) !== hash) throw new Error(`${dir}: ${file} changed after sealing`);
 }
 
+// The code that turns a cell's evidence into verdicts. A cell records this hash so a later grade can tell whether it changed.
+export function gradingSha(hostName) {
+  const files = ["criteria.mjs", "hosts/common.mjs", `hosts/${hostName}.mjs`];
+  return sha(files.map((file) => `${file}\0${readFileSync(join(here, file), "utf8")}`).join("\0"));
+}
+
 // Normalize and grade one sealed cell. Reruns read only the evidence, never a model.
-function gradeCell(dir) {
+// `current` grades with today's scenario. `original` grades with the scenario the cell ran with, and only under the same grading code.
+function gradeCell(dir, criteria = "current") {
   const cell = JSON.parse(readFileSync(join(dir, "cell.json"), "utf8"));
-  const scenario = scenarioById(cell.scenario);
-  if (!scenario) throw new Error(`${dir}: unknown scenario ${cell.scenario}`);
   const host = HOSTS[cell.host];
+  if (!host) throw new Error(`${dir}: unknown host ${cell.host}`);
+  const base = { criteria, arm: cell.arm, reference: Boolean(host.reference), process: cell.process };
+  let scenario = scenarioById(cell.scenario);
+  if (criteria === "original") {
+    const reason = !cell.scenarioSnapshot || !cell.gradingSha
+      ? "sealed before cells recorded their scenario and grading code"
+      : cell.gradingSha !== gradingSha(cell.host) ? "the grading code changed since the cell ran" : null;
+    if (reason) {
+      const result = { ...base, status: "not-assessable", ok: null, reason, verdicts: {} };
+      rmSync(join(dir, "run.json"), { force: true });
+      write(join(dir, "grade.json"), result);
+      return { cell, run: null, result };
+    }
+    scenario = cell.scenarioSnapshot;
+  }
+  if (!scenario) throw new Error(`${dir}: unknown scenario ${cell.scenario}`);
   const run = host.normalize(dir, cell);
   const verdicts = grade(run, expectFor(scenario, cell.host));
-  const result = {
-    ok: cell.process.exit === 0 && !cell.process.timedOut && cellOk(verdicts, cell.arm, scenario.control),
-    arm: cell.arm,
-    reference: Boolean(host.reference),
-    process: cell.process,
-    verdicts,
-  };
+  const ok = cell.process.exit === 0 && !cell.process.timedOut && cellOk(verdicts, cell.arm, scenario.control);
+  const result = { ...base, status: ok ? "ok" : "not ok", ok, verdicts };
   write(join(dir, "run.json"), run);
   write(join(dir, "grade.json"), result);
   return { cell, run, result };
@@ -78,7 +95,7 @@ function gradeCell(dir) {
 function parseArgs(argv) {
   const opts = {
     arm: ["post"], trials: 1, timeout: 900, claudeModel: "sonnet", claudeBudget: 2,
-    piModel: process.env.PSTACK_CELL_PI_MODEL ?? "openai-codex/gpt-6.1-sol:medium", cursorModel: null, grokModel: null, piAgentDir: null, out: null,
+    piModel: process.env.PSTACK_CELL_PI_MODEL ?? "openai-codex/gpt-6.1-sol:medium", cursorModel: null, grokModel: null, opencodeModel: null, opencodeConfig: null, piAgentDir: null, out: null,
   };
   const list = (v) => v.split(",").filter(Boolean);
   for (let i = 0; i < argv.length; i++) {
@@ -97,19 +114,27 @@ function parseArgs(argv) {
       case "--pi-agent-dir": opts.piAgentDir = resolve(value); break;
       case "--cursor-model": opts.cursorModel = value; break;
       case "--grok-model": opts.grokModel = value; break;
+      case "--opencode-model": opts.opencodeModel = value; break;
+      case "--opencode-config": opts.opencodeConfig = resolve(value); break;
       case "--out": opts.out = resolve(value); break;
       default: throw new Error(`unknown flag ${flag}`);
     }
   }
   // Every cell bills a session, so nothing runs without an explicit selection.
   if (!opts.scenario?.length || !opts.host?.length) throw new Error("run needs --scenario <ids|all> and --host <names>");
+  if (opts.arm.includes("ab")) {
+    const missing = opts.scenario.filter((id) => !scenarioById(id)?.baseline_ref);
+    if (missing.length) throw new Error(`--arm ab needs a baseline_ref, and ${missing.join(", ")} ${missing.length === 1 ? "has" : "have"} none`);
+  }
   return opts;
 }
 
 function materialize(arm, dest) {
   mkdirSync(dest, { recursive: true });
   if (arm.startsWith("ref:")) {
-    sh("bash", ["-c", `git -C "$0" archive "$1" -- "\${@:3}" | tar -x -C "$2"`, repo, arm.slice(4), dest, ...LOADED_PATHS]);
+    // An older commit lacks the newer harness entries, and git archive refuses a path the commit does not have.
+    const present = sh("git", ["-C", repo, "ls-tree", "--name-only", arm.slice(4), "--", ...LOADED_PATHS]).split("\n").filter(Boolean);
+    sh("bash", ["-c", `git -C "$0" archive "$1" -- "\${@:3}" | tar -x -C "$2"`, repo, arm.slice(4), dest, ...present]);
   } else if (arm === "upstream") {
     const upstream = process.env.PSTACK_UPSTREAM_DIR;
     if (!upstream) throw new Error("the upstream arm needs PSTACK_UPSTREAM_DIR");
@@ -236,7 +261,7 @@ async function runCells(opts) {
         const host = HOSTS[hostName];
         if (!host) throw new Error(`unknown host ${hostName}`);
         if (!scenario.hosts[hostName]) continue;
-        for (const arm of opts.arm) {
+        for (const arm of armsFor(scenario, opts.arm)) {
           const armKind = arm.startsWith("ref:") ? "ref" : arm;
           if (!host.arms.includes(armKind)) continue;
           if (!trees.has(`${hostName}:${arm}`)) {
@@ -257,13 +282,13 @@ async function runCells(opts) {
             seed.commit();
             const stagedBefore = scenario.overlay?.staged ? seed.staged() : null;
             const cell = {
-              scenario: id, scenarioSha: sha(JSON.stringify(scenario)), host: hostName, arm, trial,
+              scenario: id, scenarioSha: sha(JSON.stringify(scenario)), scenarioSnapshot: scenario, gradingSha: gradingSha(hostName), host: hostName, arm, trial,
               dir, project, pluginRoot,
               skillsDir: join(pluginRoot, arm === "upstream" ? "skills" : "pstack/skills"),
               adapterPath: host.adapter(pluginRoot, arm),
               installedRoot: installs.find((i) => i.key === `${hostName}:${arm}`)?.installedRoot,
               prompt: `${host.command(scenario.skill)}${scenario.prompt ? ` ${scenario.prompt}` : ""}`,
-              models: { claude: opts.claudeModel, pi: opts.piModel, cursor: opts.cursorModel, grok: opts.grokModel }[hostName] ?? null,
+              models: { claude: opts.claudeModel, pi: opts.piModel, cursor: opts.cursorModel, grok: opts.grokModel, opencode: opts.opencodeModel }[hostName] ?? null,
               repoHead: sh("git", ["-C", repo, "rev-parse", "HEAD"]),
               repoDirty: sh("git", ["-C", repo, "status", "--porcelain"]) !== "",
               pstackTree: sh("git", ["-C", repo, "rev-parse", "HEAD:pstack"]),
@@ -273,6 +298,11 @@ async function runCells(opts) {
             };
             const rules = snapshotRules();
             const plan = host.launch(cell, { ...opts, piAgentDir: opts.piAgentDir });
+            write(join(dir, "shims.log"), "");
+            // Outside the project, so the shims never show in its git status.
+            plan.env.PATH = installShims(join(workbench, `cell-${n}`, "bin"), join(dir, "shims.log"), plan.env.PATH ?? process.env.PATH);
+            Object.assign(plan.env, withoutCredentials(join(workbench, `cell-${n}`, "gh-config")));
+            cell.shims = true;
             cell.argv = plan.argv;
             console.error(`cells: ${n} ${id} ${hostName} ${arm} trial ${trial}`);
             cell.process = await launch(plan, project, dir, opts.timeout);
@@ -283,7 +313,7 @@ async function runCells(opts) {
             write(join(dir, "cell.json"), cell);
             seal(dir);
             const { run, result } = gradeCell(dir);
-            results.push({ dir: relative(out, dir), scenario: id, host: hostName, arm, trial, ok: result.ok, reference: result.reference, cost: run.cost, failing: failing(result) });
+            results.push({ dir: relative(out, dir), scenario: id, host: hostName, arm, trial, status: result.status, ok: result.ok, reference: result.reference, cost: run.cost, failing: failing(result) });
             console.error(`cells:   ${result.ok ? "ok" : "NOT OK"} ${failing(result).join(" ") || ""}`);
           }
         }
@@ -300,9 +330,11 @@ async function runCells(opts) {
 
 const failing = (result) => Object.entries(result.verdicts).filter(([, v]) => v.verdict === "fail").map(([name]) => name);
 
+const STATUS_LABEL = { ok: "ok", "not ok": "NOT OK", "not-assessable": "not-assessable" };
+
 function summarize(out, results) {
   write(join(out, "summary.json"), results);
-  const rows = results.map((r) => `| ${r.scenario} | ${r.host}${r.reference ? " (ref)" : ""} | ${r.arm} | ${r.trial} | ${r.ok ? "ok" : "NOT OK"} | ${r.failing.join(", ")} | ${r.cost === null ? "" : r.cost.toFixed(2)} |`);
+  const rows = results.map((r) => `| ${r.scenario} | ${r.host}${r.reference ? " (ref)" : ""} | ${r.arm} | ${r.trial} | ${STATUS_LABEL[r.status]} | ${r.reason ?? r.failing.join(", ")} | ${r.cost == null ? "" : r.cost.toFixed(2)} |`);
   write(join(out, "summary.md"), ["| scenario | host | arm | trial | result | failing | usd |", "|---|---|---|---|---|---|---|", ...rows, ""].join("\n"));
   console.log(readFileSync(join(out, "summary.md"), "utf8"));
 }
@@ -314,20 +346,23 @@ function cellDirs(dir) {
   return readdirSync(dir).map((d) => join(dir, d)).filter((d) => statSync(d).isDirectory() && existsSync(join(d, "cell.json")));
 }
 
-function regrade(dir) {
+function regrade(dir, criteria) {
   const results = cellDirs(resolve(dir)).map((d) => {
     verifySeal(d);
-    const { cell, run, result } = gradeCell(d);
-    return { dir: relative(resolve(dir), d) || ".", scenario: cell.scenario, host: cell.host, arm: cell.arm, trial: cell.trial, ok: result.ok, reference: result.reference, cost: run.cost, failing: failing(result) };
+    const { cell, run, result } = gradeCell(d, criteria);
+    return {
+      dir: relative(resolve(dir), d) || ".", scenario: cell.scenario, host: cell.host, arm: cell.arm, trial: cell.trial,
+      status: result.status, ok: result.ok, reason: result.reason, reference: result.reference, cost: run?.cost ?? null, failing: failing(result),
+    };
   });
   summarize(resolve(dir), results);
   return results.every((r) => r.ok || r.reference);
 }
 
-function checkCatalog() {
+export function checkCatalog(scenarios = SCENARIOS) {
   const problems = [];
   const ids = new Set();
-  for (const s of SCENARIOS) {
+  for (const s of scenarios) {
     if (ids.has(s.id)) problems.push(`${s.id}: duplicate id`);
     ids.add(s.id);
     if (!existsSync(join(repo, "pstack/skills", s.skill, "SKILL.md"))) problems.push(`${s.id}: no skill ${s.skill}`);
@@ -335,6 +370,8 @@ function checkCatalog() {
     if (s.overlay && !existsSync(join(here, "overlays", s.overlay.dir))) problems.push(`${s.id}: no overlay ${s.overlay.dir}`);
     if (BLINDED.test(s.prompt)) problems.push(`${s.id}: prompt names the observation (${BLINDED.exec(s.prompt)[0]})`);
     if (!s.control?.length) problems.push(`${s.id}: no negative control`);
+    const baseline = s.baseline_ref && spawnSync("git", ["-C", repo, "rev-parse", "--verify", "--quiet", `${s.baseline_ref}^{commit}`]);
+    if (baseline && baseline.status !== 0) problems.push(`${s.id}: baseline_ref ${s.baseline_ref} is not a commit`);
     for (const host of Object.keys(s.hosts)) {
       if (!HOSTS[host]) { problems.push(`${s.id}: unknown host ${host}`); continue; }
       const expect = expectFor(s, host);
@@ -374,28 +411,35 @@ function checkGolden() {
   return problems;
 }
 
-const [command, ...rest] = process.argv.slice(2);
-try {
-  if (command === "list") {
-    for (const s of SCENARIOS) console.log(`${s.id.padEnd(20)} ${s.skill.padEnd(14)} ${Object.keys(s.hosts).join(",").padEnd(18)} ${s.why}`);
-  } else if (command === "run") {
-    const results = await runCells(parseArgs(rest));
-    process.exitCode = results.length === 0 ? 2 : results.every((r) => r.ok || r.reference) ? 0 : 1;
-  } else if (command === "grade") {
-    process.exitCode = regrade(rest[0] ?? ".") ? 0 : 1;
-  } else if (command === "seal") {
-    // For hand-built golden cells under evals/golden/.
-    seal(resolve(rest[0]));
-  } else if (command === "check") {
-    const problems = [...checkCatalog(), ...checkGolden()];
-    for (const p of problems) console.log(`cells: FAIL ${p}`);
-    if (!problems.length) console.log(`cells: catalog of ${SCENARIOS.length} scenarios is consistent`);
-    process.exitCode = problems.length ? 1 : 0;
-  } else {
-    console.error("usage: cells.mjs list | run --scenario <ids|all> --host <names> [...] | grade <dir> | check");
+async function main([command, ...rest]) {
+  try {
+    if (command === "list") {
+      for (const s of SCENARIOS) console.log(`${s.id.padEnd(20)} ${s.skill.padEnd(14)} ${Object.keys(s.hosts).join(",").padEnd(18)} ${s.why}`);
+    } else if (command === "run") {
+      const results = await runCells(parseArgs(rest));
+      process.exitCode = results.length === 0 ? 2 : results.every((r) => r.ok || r.reference) ? 0 : 1;
+    } else if (command === "grade") {
+      const flag = rest.indexOf("--criteria");
+      const criteria = flag === -1 ? "current" : rest[flag + 1];
+      if (!["current", "original"].includes(criteria)) throw new Error("--criteria takes current or original");
+      const dirs = rest.filter((_, i) => flag === -1 || (i !== flag && i !== flag + 1));
+      process.exitCode = regrade(dirs[0] ?? ".", criteria) ? 0 : 1;
+    } else if (command === "seal") {
+      // For hand-built golden cells under evals/golden/.
+      seal(resolve(rest[0]));
+    } else if (command === "check") {
+      const problems = [...checkCatalog(), ...checkGolden()];
+      for (const p of problems) console.log(`cells: FAIL ${p}`);
+      if (!problems.length) console.log(`cells: catalog of ${SCENARIOS.length} scenarios is consistent`);
+      process.exitCode = problems.length ? 1 : 0;
+    } else {
+      console.error("usage: cells.mjs list | run --scenario <ids|all> --host <names> [...] | grade <dir> [--criteria current|original] | check");
+      process.exitCode = 2;
+    }
+  } catch (error) {
+    console.error(`cells: ${error.message}`);
     process.exitCode = 2;
   }
-} catch (error) {
-  console.error(`cells: ${error.message}`);
-  process.exitCode = 2;
 }
+
+if (import.meta.main) await main(process.argv.slice(2));
