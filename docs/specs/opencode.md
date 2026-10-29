@@ -49,8 +49,8 @@ For a local checkout, put the repo root's absolute path in `plugins`. Opening th
 Against `opencode serve` with the repo root in `plugins`:
 
 - `/api/plugin` lists `pstack`, source `local`, status `active`. Its path is `<repo>/index.js` in opencode 2.1.4 and `<repo>` in 2.2.0.
-- `/api/skill` lists 57 skills whose path is under `pstack/skills/`, the same names as on disk. 56 have `autoinvoke: false`. `<available_skills>` in the model's system prompt offers one pstack skill, `setup-pstack`, as Cursor, Claude Code and Pi do.
-- `/api/command` lists 57 `pstack:<name>` commands.
+- `/api/skill` lists 58 skills whose path is under `pstack/skills/`, the same names as on disk. 57 have `autoinvoke: false`. `<available_skills>` in the model's system prompt offers one pstack skill, `setup-pstack`, as Cursor, Claude Code and Pi do.
+- `/api/command` lists 58 `pstack:<name>` commands.
 - `/api/agent` lists `poteto-agent` and `comment-sicko` as subagents with the `question` and `subagent` denies.
 
 opencode's compatibility loader also reads `~/.claude/skills` and `~/.agents/skills`, so a count must filter by path.

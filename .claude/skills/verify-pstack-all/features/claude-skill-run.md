@@ -20,7 +20,7 @@ Preconditions:
 - `doctor.sh <id>` is all `OK`, including the Claude login line.
 
 - **Ask a help question.** Run `drive-claude.sh <id> poteto-help-models '/pstack:poteto-help how do I choose which model each pstack role uses, and where does that setting live?'`. Exit `0`.
-- **Loaded plugin.** `drive-poteto-help-models/init.json` lists `{"name":"pstack","path":"<repo>","source":"pstack@inline"}`, agents `pstack:comment-sicko` and `pstack:poteto-agent`, and `"pstack_commands":57`. No other pstack plugin is listed.
+- **Loaded plugin.** `drive-poteto-help-models/init.json` lists `{"name":"pstack","path":"<repo>","source":"pstack@inline"}`, agents `pstack:comment-sicko` and `pstack:poteto-agent`, and `"pstack_commands":58`. No other pstack plugin is listed.
 - **Hook.** `hooks.txt` holds the line `SessionStart:startup: pstack skills use Cursor names. Before you follow a pstack skill, read <repo>/pstack/docs/harness/claude-code.md once per session.`
 - **Adapter read.** `tools.txt` has `Read {"file_path":"<repo>/pstack/docs/harness/claude-code.md"}`.
 - **Answer.** `answer.md` tells the user to type `/pstack:setup-pstack` and names `~/.claude/rules/pstack-models.md` as where the setting lives in Claude Code.

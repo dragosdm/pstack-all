@@ -42,4 +42,4 @@ Cursor's servers index a marketplace repository. The CLI registers the repositor
 ## Not verified
 
 - Marketplace install from this repository. Cursor indexes it server-side, so no local test reaches it.
-- Root manifests read through `--plugin-dir <repo root>`. Probes that asked the model to list its skills could not tell variants apart. Of the 57 pstack skills, 56 set `disable-model-invocation: true`, so the model sees only `setup-pstack`, and a globally installed pstack has a skill with the same name.
+- Root manifests read through `--plugin-dir <repo root>`. Probes that asked the model to list its skills could not tell variants apart. Of the 58 pstack skills, 57 set `disable-model-invocation: true`, so the model sees only `setup-pstack`, and a globally installed pstack has a skill with the same name.

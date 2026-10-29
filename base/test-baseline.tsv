@@ -1,4 +1,4 @@
 suite	exit	pass	fail	skip
-poteto-mode bun test	0	68	0	0
+poteto-mode bun test	0	61	0	0
 watch-pr typecheck	0	-	0	-
-statechart node test	0	27	0	31
+skill scripts node test	0	267	0	67
