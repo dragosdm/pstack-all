@@ -49,11 +49,11 @@ export const SCENARIOS = [
     overlay: { dir: "staged-fixed-discount", staged: true },
     prompt: "tear apart my staged change before I commit it.",
     expect: {
-      loaded: true, adapter: true, spawns: [2, 4], parallel: 2, readonly: true, modelsValid: true, announced: true, stagedIntact: true, rulesUntouched: true, noRemoteWrites: true,
+      loaded: true, adapter: true, spawns: [2, 4], parallel: 2, worktree: true, modelsValid: true, announced: true, stagedIntact: true, rulesUntouched: true, noRemoteWrites: true,
     },
     hosts: { claude: {}, pi: { noLeftover: true }, opencode: {} },
     control: ["adapter"],
-    why: "Reviewers fan out together, read-only, and nothing is applied; the flaw is visible only against invoice.js.",
+    why: "Adversaries fan out together, each in its own worktree to run repros, and nothing is applied to the checkout; the flaw is visible only against invoice.js.",
   },
   {
     id: "swarm-worktree",
