@@ -1,6 +1,6 @@
 # opencode
 
-Last verified 2026-10-23 against `opencode v2.1.4`, whose plugin runtime is Bun 1.4.4.
+Last verified 2026-10-23 against `opencode v2.1.4`, whose plugin runtime is Bun 1.4.4. `scripts/check-opencode.sh` also passed against `opencode v2.2.0` on 2026-10-29.
 
 ## Entry files
 
@@ -48,9 +48,9 @@ For a local checkout, put the repo root's absolute path in `plugins`. Opening th
 
 Against `opencode serve` with the repo root in `plugins`:
 
-- `/api/plugin` lists `pstack`, source `local`, path `<repo>/index.js`, status `active`.
-- `/api/skill` lists 57 skills whose path is under `pstack/skills/`, the same names as on disk. 56 have `autoinvoke: false`. `<available_skills>` in the model's system prompt offers one pstack skill, `setup-pstack`, as Cursor, Claude Code and Pi do.
-- `/api/command` lists 57 `pstack:<name>` commands.
+- `/api/plugin` lists `pstack`, source `local`, status `active`. Its path is `<repo>/index.js` in opencode 2.1.4 and `<repo>` in 2.2.0.
+- `/api/skill` lists 58 skills whose path is under `pstack/skills/`, the same names as on disk. 57 have `autoinvoke: false`. `<available_skills>` in the model's system prompt offers one pstack skill, `setup-pstack`, as Cursor, Claude Code and Pi do.
+- `/api/command` lists 58 `pstack:<name>` commands.
 - `/api/agent` lists `poteto-agent` and `comment-sicko` as subagents with the `question` and `subagent` denies.
 
 opencode's compatibility loader also reads `~/.claude/skills` and `~/.agents/skills`, so a count must filter by path.
@@ -59,7 +59,7 @@ opencode's compatibility loader also reads `~/.claude/skills` and `~/.agents/ski
 
 `scripts/check-opencode.sh` runs `opencode serve` on 127.0.0.1 with `HOME` and every XDG dir in a throwaway folder, `OPENCODE_DISABLE_MODELS_FETCH=1` and `OPENCODE_DISABLE_AUTOUPDATE=1`. It resolves the binary with `mise which opencode` before it moves `XDG_DATA_HOME`. The mise shim installs opencode afresh under a moved data dir. The model is `scripts/opencode-mock-model.mjs`, a scripted OpenAI-compatible server on localhost registered as a V2 custom provider. No login, network or billing. The check:
 
-- polls `/api/plugin` until pstack loads, and requires it active from `index.js` with no plugin error or warning in the server log.
+- polls `/api/plugin` until pstack loads, and requires it active from the repo root, either path form, with no plugin error or warning in the server log.
 - compares `/api/skill`, `/api/command` and `/api/agent` with the files on disk, as in Inventory.
 - prompts a session with `spawn`. The model calls `subagent` for `comment-sicko`, then for `poteto-agent`, and each child answers at once. The parent's request must tell the model to read a file equal to `docs/harness/opencode.md`, and `<available_skills>` must offer exactly the pstack skills without `disable-model-invocation`. Each child's request must hold its agent heading, `# Comment Sicko` or `# Poteto subagent`, and the adapter line, and must have no `subagent` tool. Both children have no `subagent` tool, so the deny removes it.
 - posts `pstack:how` to `/api/session/<id>/command`. The model's last user message must be ``Load and execute the `how` skill.`` and `probe`, and its `skill` call must return `<skill_content name="how">` with the body of `pstack/skills/how/SKILL.md`.

@@ -1,12 +1,12 @@
 # Claude Code install
 
-A Claude Code user adds this repo as a marketplace, installs `pstack`, and gets 57 `/pstack:` skills, 2 `pstack:` agents, and a SessionStart hook.
+A Claude Code user adds this repo as a marketplace, installs `pstack`, and gets 58 `/pstack:` skills, 2 `pstack:` agents, and a SessionStart hook.
 
 ## Sub-features
 
 - `install-add` registers the `pstack-all` marketplace from the repo.
 - `install-plugin` installs `pstack@pstack-all`.
-- `install-inventory` lists 57 skills and 1 SessionStart hook.
+- `install-inventory` lists 58 skills and 1 SessionStart hook.
 
 ## How to get to it (user POV)
 
@@ -20,7 +20,7 @@ Preconditions:
 - `doctor.sh <id>` is all `OK` for a run launched with `claude` or `all`. Doctor also requires the Claude login, which only a drive needs. A logged-out machine fails doctor even when the install is fine.
 
 - **Add and install.** Run `launch.sh claude`. `claude-install.log` contains `Successfully installed plugin: pstack@pstack-all (scope: user)`.
-- **Inventory.** Read `claude-details.txt`. It shows `pstack <version>`, `Skills (57)`, and a line starting `Hooks (1)  SessionStart`.
+- **Inventory.** Read `claude-details.txt`. It shows `pstack <version>`, `Skills (58)`, and a line starting `Hooks (1)  SessionStart`.
 - **Installed bytes.** `doctor.sh` reports `claude install matches the working tree`.
 
 ## Gotchas

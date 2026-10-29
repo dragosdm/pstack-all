@@ -36,7 +36,7 @@ node evals/cells.mjs check                                   # scenario table an
 
 ## What must stay unchanged
 
-- Every file under `pstack/`, byte for byte and mode for mode, equals upstream `eb4db2b:pstack` (tree `d08bf3a`).
+- Every file under `pstack/`, byte for byte and mode for mode, equals upstream `1ba91fc:pstack` (tree `4719e1c`).
 - Skill behavior. pstack's own suites keep the counts in `base/test-baseline.tsv`.
 - What each harness discovers. Grok CLI lists the same skills and agents from the repo root as from `pstack/`.
 - Upstream's Cursor and Grok Bot shape, a catalog entry whose source is `pstack/`.

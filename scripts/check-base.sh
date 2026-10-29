@@ -60,9 +60,14 @@ scripts_dir="$work/pstack/skills/poteto-mode/scripts"
 counts() { grep -Eo "$2" "$1" | tail -1 | grep -Eo '[0-9]+' || echo 0; }
 
 bun_exit=0 tsc_exit=0 node_exit=0
-(cd "$scripts_dir" && bun test orch watch-pr check-plan.test.ts) >"$work/bun-test.log" 2>&1 || bun_exit=$?
+(cd "$scripts_dir" && bun test watch-pr check-plan.test.ts) >"$work/bun-test.log" 2>&1 || bun_exit=$?
 (cd "$scripts_dir" && bun x tsc --project watch-pr/tsconfig.json --noEmit --strict) >"$work/tsc.log" 2>&1 || tsc_exit=$?
-(cd "$work/pstack/skills/statechart/scripts" && node --test --test-reporter=tap test/statechart.test.mjs) >"$work/node-test.log" 2>&1 || node_exit=$?
+# Upstream CI installs fast-check at the repo root with --no-save, since statechart/scripts has no lockfile.
+fast_check="$(jq -r '.devDependencies["fast-check"]' pstack/skills/statechart/scripts/package.json)"
+(cd "$work" && npm install --no-save --no-package-lock "fast-check@$fast_check") >"$work/npm.log" 2>&1 || {
+  echo "tests: FAIL npm install fast-check@$fast_check"; cat "$work/npm.log"; exit 1
+}
+(cd "$work" && node --disable-warning=ExperimentalWarning --test --test-reporter=tap pstack/skills/*/scripts/test/*.test.ts) >"$work/node-test.log" 2>&1 || node_exit=$?
 
 {
   printf 'suite\texit\tpass\tfail\tskip\n'
@@ -71,7 +76,7 @@ bun_exit=0 tsc_exit=0 node_exit=0
     "$(counts "$work/bun-test.log" '^ *[0-9]+ fail')" \
     "$(counts "$work/bun-test.log" '^ *[0-9]+ skip')"
   printf 'watch-pr typecheck\t%s\t-\t%s\t-\n' "$tsc_exit" "$(grep -c 'error TS' "$work/tsc.log" || true)"
-  printf 'statechart node test\t%s\t%s\t%s\t%s\n' "$node_exit" \
+  printf 'skill scripts node test\t%s\t%s\t%s\t%s\n' "$node_exit" \
     "$(counts "$work/node-test.log" '^# pass [0-9]+')" \
     "$(counts "$work/node-test.log" '^# fail [0-9]+')" \
     "$(counts "$work/node-test.log" '^# skipped [0-9]+')"

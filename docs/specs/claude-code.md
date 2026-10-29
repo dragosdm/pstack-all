@@ -31,11 +31,11 @@ Upstream's `pstack@cursor-plugins` uses the same plugin name. Uninstall it first
 
 Upstream `cursor/plugins` does not install `pstack/` in Claude Code. `scripts/generate-pstack-harness-trees.mjs` renders a copy at `harness/pstack/claude-code/`, and its catalog points there. The copy differs from `pstack/` in three ways:
 
-1. It inserts one line after the H1 of each `SKILL.md` that uses Cursor names (23 at `eb4db2b`): read the Claude Code adapter once per session before you follow this skill.
+1. It inserts one line after the H1 of each `SKILL.md` that uses Cursor names (23 of 58 at `1ba91fc`): read the Claude Code adapter once per session before you follow this skill.
 2. It rewrites relative links to files it leaves out, such as `automations/` and `assets/`, so they point at GitHub.
 3. It drops `automations/`, `assets/`, `.cursor-plugin/`, and `.gitignore`.
 
-Here Claude loads `pstack/` in place, so nothing needs to be dropped or relinked. The adapter line moves into the `SessionStart` hook, which adds it to the model's context in every session. All 57 skills are covered by one line, instead of 23 skills each carrying it. No `SKILL.md` changes.
+Here Claude loads `pstack/` in place, so nothing needs to be dropped or relinked. The adapter line moves into the `SessionStart` hook, which adds it to the model's context in every session. All 58 skills are covered by one line, instead of 23 skills each carrying it. No `SKILL.md` changes.
 
 ## Manifest precedence
 
@@ -43,9 +43,9 @@ Grok CLI reads `.claude-plugin/plugin.json` third, after root `plugin.json` and 
 
 ## Inventory
 
-`claude plugin details pstack@pstack-all` lists 57 skills and 1 `SessionStart` hook. It lists **0 agents**, because `details` counts only a default `agents/` folder. A model run sees both agents. A minimal plugin with custom agent paths showed the same split, so this is how `details` reports, not a pstack issue.
+`claude plugin details pstack@pstack-all` lists 58 skills and 1 `SessionStart` hook. It lists **0 agents**, because `details` counts only a default `agents/` folder. A model run sees both agents. A minimal plugin with custom agent paths showed the same split, so this is how `details` reports, not a pstack issue.
 
-Upstream's generated tree at `eb4db2b`, installed the same way, lists the same 57 skills and the same 2 agents.
+Upstream's generated tree at `1ba91fc`, installed the same way, lists the same 58 skills and the same 2 agents.
 
 ## Check
 

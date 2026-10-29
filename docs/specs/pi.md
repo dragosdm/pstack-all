@@ -16,7 +16,7 @@ Pi reads the root `package.json`. This is compound-engineering's shape: a Pi pac
 }
 ```
 
-- `pi.skills` loads the 57 skills in place. Pi names them `/skill:<name>`.
+- `pi.skills` loads the 58 skills in place. Pi names them `/skill:<name>`.
 - `.pi/extensions/pstack.ts` is the Pi counterpart of the Claude Code `SessionStart` hook. On `before_agent_start` it appends one line to the system prompt: read `docs/harness/pi.md` once per session.
 - The same extension also returns `pstack/skills` from `resources_discover`. Pi auto-loads a trusted project's `.pi/extensions/` without its `package.json`, so before this, Pi run inside this checkout with nothing installed had the adapter line and `pstack-subagent` but no pstack skill. Pi drops the duplicate path when both routes load.
 - It registers a `pstack:<name>` command for every folder under `pstack/skills/`, so `/pstack:<name>` is in the `/` menu. `/pstack:<name>` is the standard shared with Claude Code and opencode. The handler forwards `/skill:<name> <args>` with `pi.sendUserMessage(..., { expandPromptTemplates: true })`, which makes Pi expand the skill. Without that option Pi sends the text as is. In print and JSON modes the handler waits for `agent_settled`, because those modes exit when the command returns and `sendUserMessage` only starts the run.
@@ -55,7 +55,7 @@ For a local checkout, run `pi install <this repo>`. Pi loads a local path in pla
 
 ## Inventory
 
-`get_commands` over `pi --mode rpc` lists 57 `skill:` commands whose path is under `pstack/skills/`, the same names as on disk. Neither needs a model call.
+`get_commands` over `pi --mode rpc` lists 58 `skill:` commands whose path is under `pstack/skills/`, the same names as on disk. Neither needs a model call.
 
 The model's system prompt lists one pstack skill, `setup-pstack`. The other 56 set `disable-model-invocation: true`, so Pi hides them from the model and keeps `/skill:<name>`, as Cursor and Claude Code do.
 
