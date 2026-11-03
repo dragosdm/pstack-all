@@ -2,7 +2,8 @@
 // A scripted OpenAI-compatible model for scripts/check-pi.sh. No network, no billing.
 // The parent run gets one bash call that spawns two pstack subagents and waits for them; each child answers with
 // what it was given, so the parent's final text carries proof of the agent prompt, the tool set, and the worktree.
-// poteto-agent's 40 KB brief is longer than tmux accepts on a command line.
+// poteto-agent's 40 KB brief is longer than tmux accepts on a command line. Its RUN line starts a pi of its own, as a
+// provider's helper process does, and that pi must not take over the run.
 import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 
@@ -13,7 +14,8 @@ const script = scriptFile ? JSON.parse(readFileSync(scriptFile, "utf8")) : null;
 
 const SPAWN = `set -e
 a=$(pstack-subagent spawn --name sicko --agent comment-sicko --tools read,grep,find,ls --prompt probe | sed -nE 's/^Spawned sicko \\(([a-z0-9]+)\\)$/\\1/p')
-b=$(pstack-subagent spawn --name poteto --agent poteto-agent --worktree HEAD --prompt "probe $(head -c 40000 /dev/zero | tr '\\0' x)" | sed -nE 's/^Spawned poteto \\(([a-z0-9]+)\\)$/\\1/p')
+b=$(pstack-subagent spawn --name poteto --agent poteto-agent --worktree HEAD --prompt "probe $(head -c 40000 /dev/zero | tr '\\0' x)
+RUN: $PSTACK_PI_BIN --mode rpc --no-session </dev/null; sleep 2" | sed -nE 's/^Spawned poteto \\(([a-z0-9]+)\\)$/\\1/p')
 pstack-subagent list
 pstack-subagent wait "$a" --timeout 90
 pstack-subagent wait "$b" --timeout 90
