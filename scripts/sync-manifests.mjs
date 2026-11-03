@@ -16,6 +16,8 @@ const agents = readdirSync(join(ROOT, "pstack/agents"))
 // Upstream writes this line into each SKILL.md of a generated Claude tree; a hook keeps pstack/ unchanged.
 const ADAPTER =
   'echo "pstack skills use Cursor names. Before you follow a pstack skill, read ${CLAUDE_PLUGIN_ROOT}/pstack/docs/harness/claude-code.md once per session."';
+const CODEX_ADAPTER =
+  'echo "pstack skills use Cursor names. Before you follow a pstack skill, read ${PLUGIN_ROOT}/docs/harness/codex.md once per session."';
 const catalog = {
   name: "pstack-all",
   owner: { name: "Dragos Musetescu" },
@@ -36,6 +38,7 @@ const HARNESSES = [
     render: () => ({
       ...meta,
       skills: "./pstack/skills/",
+      hooks: "./.codex-plugin/hooks.json",
       interface: {
         displayName: base.name,
         shortDescription: base.description,
@@ -45,6 +48,12 @@ const HARNESSES = [
         logo: "./pstack/assets/logo.png",
       },
     }),
+  },
+  {
+    // Not hooks/hooks.json, the default path, which Claude Code would also load from the same plugin root.
+    harness: "codex",
+    file: ".codex-plugin/hooks.json",
+    render: () => ({ hooks: { SessionStart: [{ hooks: [{ type: "command", command: CODEX_ADAPTER }] }] } }),
   },
   {
     harness: "codex",

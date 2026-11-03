@@ -50,6 +50,18 @@ else
   fail "codex plugin add returned $(jq -c . "$work/add.json")"
 fi
 
+# Codex runs a plugin hook only once the user trusts it. The TUI asks at startup and writes these two hashes.
+node scripts/codex-hooks.mjs "$codex" "$work/cwd" >"$work/hooks.json" || fail "the app-server did not answer hooks/list"
+hooks="$(jq -c '[.data[]?.hooks[]? | select(.pluginId == "pstack@pstack-all") | {key, eventName, trustStatus}]' "$work/hooks.json")"
+if [[ "$hooks" == '[{"key":"pstack@pstack-all:.codex-plugin/hooks.json:session_start:0:0","eventName":"sessionStart","trustStatus":"untrusted"}]' ]]; then
+  echo "codex: hooks/list shows the pstack SessionStart hook from .codex-plugin/hooks.json, untrusted until the user trusts it"
+else
+  fail "hooks/list shows pstack hooks $hooks"
+fi
+jq -r '.data[].hooks[] | select(.pluginId == "pstack@pstack-all") | (.currentHash | split("/")) as $h
+  | "\n[hooks.state.\"\(.key)\"]\ntrusted_hash = \"\($h[0])\"\ntrusted_content_hash = \"\($h[1])\""' \
+  "$work/hooks.json" >>"$CODEX_HOME/config.toml" || fail "could not write the pstack hook trust from hooks/list"
+
 # One turn that names the largest skill, so a truncated body cannot pass.
 probe=poteto-mode
 (cd "$work/cwd" && RUST_LOG=codex_core_plugins=warn "$codex" exec --skip-git-repo-check "Use \$pstack:$probe" </dev/null >"$work/exec.log" 2>&1) ||
@@ -60,6 +72,12 @@ if grep -qE 'Agent Plugins manifest.*/pstack-all/pstack/' "$work/exec.log"; then
 fi
 
 jq -r 'select(.method == "POST") | .body.input[] | .content[]?.text // empty' "$work/mock.log" >"$work/input.txt"
+adapter="$(grep -oE 'read /[^ ]+\.md once per session' "$work/input.txt" | head -1 | cut -d' ' -f2 || true)"
+if [[ "$adapter" == "$installed/docs/harness/codex.md" ]] && cmp -s "$adapter" docs/harness/codex.md; then
+  echo "codex: the trusted hook gives the model the adapter line, naming the installed docs/harness/codex.md"
+else
+  fail "the model's input names '${adapter:-no adapter}', which is not $installed/docs/harness/codex.md, or is missing, or differs from docs/harness/codex.md"
+fi
 want="$(find pstack/skills -mindepth 2 -maxdepth 2 -name SKILL.md | cut -d/ -f3 | sort | paste -sd, -)"
 have="$({ grep -oE '^- pstack:[^:]+:' "$work/input.txt" || true; } | sed -E 's/^- pstack:(.*):$/\1/' | sort -u | paste -sd, -)"
 if [[ -n "$have" && "$have" == "$want" ]]; then
