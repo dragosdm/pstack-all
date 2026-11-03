@@ -1,5 +1,5 @@
-import { readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { jsonl, workspaceFacts } from "./common.mjs";
 
 export const claude = {
@@ -17,24 +17,27 @@ export const claude = {
   },
 
   // User settings stay out so an installed pstack can't answer for the cell's tree; the login still comes from ~/.claude.
-  // Edits are accepted only inside the project and Bash only for git, node and reading; anything else is denied and recorded.
+  // acceptEdits accepts edits only inside the project and any --add-dir. A bare Edit or Write rule would allow every path.
+  // Bash runs only git and reading commands; anything else is denied and recorded.
   launch(cell, opts) {
+    // statechart writes its spec outside the project and runs its checker on it, so the cell gets a scratch folder
+    // next to the project. Its view module is model-written JavaScript that the checker imports.
+    const scratch = cell.scenarioSnapshot.skill === "statechart" ? join(dirname(cell.project), "scratch") : null;
+    if (scratch) mkdirSync(scratch, { recursive: true });
     return {
       argv: [
         "claude", "-p", "--output-format", "stream-json", "--verbose", "--no-session-persistence",
         "--setting-sources", "project,local", "--plugin-dir", cell.pluginRoot,
         "--model", opts.claudeModel, "--max-budget-usd", String(opts.claudeBudget), "--permission-mode", "acceptEdits",
+        ...(scratch ? ["--add-dir", scratch] : []),
         "--disallowedTools", "WebFetch", "WebSearch",
-        "--allowedTools", "Read", "Glob", "Grep", "Agent", "Edit", "Write", "TodoWrite",
+        "--allowedTools", "Read", "Glob", "Grep", "Agent", "TodoWrite",
         ...["status", "diff", "log", "show", "ls-files", "rev-parse", "branch", "add", "commit", "switch", "checkout", "worktree", "merge"].map((sub) => `Bash(git ${sub}:*)`),
         "Bash(ls:*)", "Bash(rg:*)", "Bash(grep:*)", "Bash(cat:*)", "Bash(wc:*)", "Bash(head:*)",
-        // statechart runs its own checker on a spec it writes in a scratch folder outside the project.
-        ...(cell.scenarioSnapshot.skill === "statechart"
-          ? [`Bash(${join(cell.skillsDir, "statechart/scripts/statechart")}:*)`, "Bash(mkdir:*)", "Edit(//tmp/**)"]
-          : []),
+        ...(scratch ? [`Bash(${join(cell.skillsDir, "statechart/scripts/statechart")}:*)`] : []),
       ],
       stdin: cell.prompt,
-      env: { CLAUDECODE: undefined, CLAUDE_CODE_ENTRYPOINT: undefined },
+      env: { CLAUDECODE: undefined, CLAUDE_CODE_ENTRYPOINT: undefined, ...(scratch ? { TMPDIR: scratch } : {}) },
     };
   },
 
