@@ -38,7 +38,14 @@ describe("sync-manifests", () => {
     const base = json(dir, "pstack/plugin.json")
     writeFileSync(join(dir, "pstack/plugin.json"), `${JSON.stringify({ ...base, description }, null, 2)}\n`)
 
-    const entries = ["plugin.json", ".claude-plugin/plugin.json", ".claude-plugin/marketplace.json", ".cursor-plugin/marketplace.json", "package.json"]
+    const entries = [
+      "plugin.json",
+      ".codex-plugin/plugin.json",
+      ".claude-plugin/plugin.json",
+      ".claude-plugin/marketplace.json",
+      ".cursor-plugin/marketplace.json",
+      "package.json",
+    ]
     const before = entries.map((file) => read(dir, file))
     expect(sync(dir, "--check").status).not.toBe(0)
     expect(entries.map((file) => read(dir, file))).toEqual(before)
@@ -48,8 +55,16 @@ describe("sync-manifests", () => {
     expect(check.status, check.stdout).toBe(0)
     expect(json(dir, "plugin.json").description).toBe(description)
     expect(json(dir, ".claude-plugin/plugin.json").description).toBe(description)
+    expect(json(dir, ".codex-plugin/plugin.json").description).toBe(description)
+    expect(json(dir, ".codex-plugin/plugin.json").interface.shortDescription).toBe(description)
     expect(json(dir, "package.json").description).toBe(description)
     expect(json(dir, ".claude-plugin/marketplace.json").plugins[0].description).toBe(description)
     expect(json(dir, ".cursor-plugin/marketplace.json").plugins[0].description).toBe(description)
+  })
+
+  test("the root plugin.json has no $schema, so Codex reads .codex-plugin/plugin.json and its skills", () => {
+    expect(json(root, "pstack/plugin.json").$schema).toStartWith("https://agent-plugins.org/schemas/")
+    expect(json(root, "plugin.json")).not.toHaveProperty("$schema")
+    expect(json(root, ".codex-plugin/plugin.json").skills).toBe("./pstack/skills/")
   })
 })

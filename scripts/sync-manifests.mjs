@@ -5,6 +5,9 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const base = JSON.parse(readFileSync(join(ROOT, "pstack/plugin.json"), "utf8"));
+// Codex reads a root plugin.json with an Agent Plugins $schema ahead of .codex-plugin/plugin.json, then ignores its
+// skills key and finds no skills. Grok CLI loads the same inventory without it.
+const { $schema, ...meta } = base;
 // Claude Code rejects a directory here and wants each agent file.
 const agents = readdirSync(join(ROOT, "pstack/agents"))
   .filter((name) => name.endsWith(".md"))
@@ -24,7 +27,40 @@ const HARNESSES = [
   {
     harness: "grok-cli",
     file: "plugin.json",
-    render: () => ({ ...base, skills: "./pstack/skills/", agents: "./pstack/agents/" }),
+    render: () => ({ ...meta, skills: "./pstack/skills/", agents: "./pstack/agents/" }),
+  },
+  {
+    // Codex plugins cannot declare agents, so poteto-agent and comment-sicko are not registered.
+    harness: "codex",
+    file: ".codex-plugin/plugin.json",
+    render: () => ({
+      ...meta,
+      skills: "./pstack/skills/",
+      interface: {
+        displayName: base.name,
+        shortDescription: base.description,
+        developerName: base.author.name,
+        category: "Coding",
+        websiteURL: base.homepage,
+        logo: "./pstack/assets/logo.png",
+      },
+    }),
+  },
+  {
+    harness: "codex",
+    file: ".agents/plugins/marketplace.json",
+    render: () => ({
+      name: catalog.name,
+      interface: { displayName: catalog.name },
+      plugins: [
+        {
+          name: base.name,
+          source: { source: "local", path: "./" },
+          policy: { installation: "AVAILABLE", authentication: "ON_INSTALL" },
+          category: "Coding",
+        },
+      ],
+    }),
   },
   {
     harness: "cursor, grok-bot",
@@ -57,21 +93,18 @@ const HARNESSES = [
     // the plugin from main. The ./tests path keeps bun out of pstack/'s own suites, which check-base.sh runs.
     harness: "pi, opencode",
     file: "package.json",
-    render: () => {
-      const { $schema, skills, agents, ...meta } = base;
-      return {
-        ...meta,
-        private: true,
-        type: "module",
-        main: "index.js",
-        scripts: { test: "bun test ./tests" },
-        keywords: [...meta.keywords, "pi-package"],
-        pi: {
-          extensions: ["./.pi/extensions/pstack.ts", "./.pi/extensions/subagent/index.ts"],
-          skills: ["./pstack/skills"],
-        },
-      };
-    },
+    render: () => ({
+      ...meta,
+      private: true,
+      type: "module",
+      main: "index.js",
+      scripts: { test: "bun test ./tests" },
+      keywords: [...meta.keywords, "pi-package"],
+      pi: {
+        extensions: ["./.pi/extensions/pstack.ts", "./.pi/extensions/subagent/index.ts"],
+        skills: ["./pstack/skills"],
+      },
+    }),
   },
 ];
 
