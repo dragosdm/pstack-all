@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process"
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { dirname, join, resolve } from "node:path"
 import { afterAll, describe, expect, setDefaultTimeout, test } from "bun:test"
@@ -66,5 +66,10 @@ describe("sync-manifests", () => {
     expect(json(root, "pstack/plugin.json").$schema).toStartWith("https://agent-plugins.org/schemas/")
     expect(json(root, "plugin.json")).not.toHaveProperty("$schema")
     expect(json(root, ".codex-plugin/plugin.json").skills).toBe("./pstack/skills/")
+  })
+
+  test("the Codex adapter hook is not at hooks/hooks.json, which Claude Code also loads from the plugin root", () => {
+    expect(json(root, ".codex-plugin/plugin.json").hooks).toBe("./.codex-plugin/hooks.json")
+    expect(existsSync(join(root, "hooks/hooks.json"))).toBe(false)
   })
 })

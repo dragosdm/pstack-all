@@ -1,6 +1,6 @@
 # Coding standards
 
-Review criteria for every change in this repository. `tests/CODING_STANDARDS.md` adds criteria for `tests/**`, and both files apply there. These criteria govern what pstack-all owns: the entry files and their generator, `.pi/`, `.opencode/`, `index.js`, `docs/harness/pi.md`, `docs/harness/opencode.md`, `docs/specs/`, `scripts/`, `evals/`, `tests/`, `base/` and `.claude/skills/verify-pstack-all/`. They do not govern `pstack/`, which is upstream bytes.
+Review criteria for every change in this repository. `tests/CODING_STANDARDS.md` adds criteria for `tests/**`, and both files apply there. These criteria govern what pstack-all owns: the entry files and their generator, `.pi/`, `.opencode/`, `index.js`, `docs/harness/pi.md`, `docs/harness/opencode.md`, `docs/harness/codex.md`, `docs/specs/`, `scripts/`, `evals/`, `tests/`, `base/` and `.claude/skills/verify-pstack-all/`. They do not govern `pstack/`, which is upstream bytes.
 
 ## Repository conventions
 
@@ -27,9 +27,9 @@ On the second finding against the same block, such as a parser, an allowlist or 
 
 ## Never edit pstack/, adapt at runtime
 
-- Close a harness gap in that harness's own layer: the Claude `SessionStart` hook rendered by `scripts/sync-manifests.mjs`, `.pi/extensions/`, `.opencode/plugins/pstack.js`, or an adapter doc in `docs/harness/`. Never edit a `SKILL.md`, and never ship a generated, modified copy of the skills. The Claude hook replaced upstream's generated `harness/pstack/claude-code/` copy for this reason (`docs/specs/claude-code.md`).
+- Close a harness gap in that harness's own layer: the Claude and Codex `SessionStart` hooks rendered by `scripts/sync-manifests.mjs`, `.pi/extensions/`, `.opencode/plugins/pstack.js`, or an adapter doc in `docs/harness/`. Never edit a `SKILL.md`, and never ship a generated, modified copy of the skills. The Claude hook replaced upstream's generated `harness/pstack/claude-code/` copy for this reason (`docs/specs/claude-code.md`).
 - An adapter doc follows `pstack/docs/harness/claude-code.md` section for section, as `docs/specs/pi.md` and `docs/specs/opencode.md` state.
-- The adapter line is one sentence with three deliveries: the `ADAPTER` hook in `scripts/sync-manifests.mjs`, `before_agent_start` in `.pi/extensions/pstack.ts`, and `adapterLine` in `.opencode/plugins/pstack.js`. A change to it changes all three.
+- The adapter line is one sentence with four deliveries: the `ADAPTER` and `CODEX_ADAPTER` hooks in `scripts/sync-manifests.mjs`, `before_agent_start` in `.pi/extensions/pstack.ts`, and `adapterLine` in `.opencode/plugins/pstack.js`. Each names its own harness's adapter path. A change to the sentence changes all four.
 - Build only for a harness version that a run has verified. The opencode plugin has the V2 `setup` export and no V1 `server()`, because V1 could not be verified here (`decisions.tsv`, 2026-10-23T11:22:51Z).
 
 ## Every adapter claim is verified

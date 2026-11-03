@@ -18,6 +18,7 @@
     "unslop"
   ],
   "skills": "./pstack/skills/",
+  "hooks": "./.codex-plugin/hooks.json",
   "interface": {
     "displayName": "pstack",
     "shortDescription": "if you want to go fast, go deep first. pstack helps you write less, but higher quality code. rigorous agent workflows you can parallelize with confidence.",

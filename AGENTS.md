@@ -1,6 +1,6 @@
 # Agent instructions
 
-pstack-all packages upstream pstack, the `pstack/` folder of `cursor/plugins`, for Cursor, Grok Bot, Grok CLI, Claude Code, Codex, Pi and opencode without changing it. `pstack/` is a byte-for-byte copy pinned by `base/pstack.lock`. This repo owns only the install and adapter layer around it: the entry files, the generator that writes them, the Claude `SessionStart` hook, the Pi extensions, the opencode plugin, the Pi and opencode adapter docs, the checks, the eval cells and the unit tests.
+pstack-all packages upstream pstack, the `pstack/` folder of `cursor/plugins`, for Cursor, Grok Bot, Grok CLI, Claude Code, Codex, Pi and opencode without changing it. `pstack/` is a byte-for-byte copy pinned by `base/pstack.lock`. This repo owns only the install and adapter layer around it: the entry files, the generator that writes them, the Claude and Codex `SessionStart` hooks, the Pi extensions, the opencode plugin, the Pi, opencode and Codex adapter docs, the checks, the eval cells and the unit tests.
 
 This repo does not author skills. It cannot change what a skill says. A fix to skill prose belongs upstream in `cursor/plugins`, and reaches this repo through a base update.
 
@@ -23,9 +23,9 @@ node evals/cells.mjs check                                   # scenario table an
 | Path | Owner | Rule |
 | --- | --- | --- |
 | `pstack/` | upstream `cursor/plugins` | Never edit. Change it only through a base update. |
-| `plugin.json`, `.cursor-plugin/marketplace.json`, `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `.codex-plugin/plugin.json`, `.agents/plugins/marketplace.json`, `package.json` | `scripts/sync-manifests.mjs` | Generated. Edit the `HARNESSES` table, never the files. |
+| `plugin.json`, `.cursor-plugin/marketplace.json`, `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `.codex-plugin/plugin.json`, `.codex-plugin/hooks.json`, `.agents/plugins/marketplace.json`, `package.json` | `scripts/sync-manifests.mjs` | Generated. Edit the `HARNESSES` table, never the files. |
 | `.pi/`, `.opencode/`, `index.js` | this repo | Pi extensions and the opencode plugin. |
-| `docs/harness/pi.md`, `docs/harness/opencode.md` | this repo | Adapters that upstream does not ship. |
+| `docs/harness/pi.md`, `docs/harness/opencode.md`, `docs/harness/codex.md` | this repo | Adapters that upstream does not ship. |
 | `docs/specs/<harness>.md` | this repo | What was verified per harness, how, and what was not. |
 | `scripts/`, `evals/`, `tests/` | this repo | Checks, eval cells, unit tests. |
 | `base/` | this repo | The lock, the upstream file listings, the test baseline, upstream's catalog validator and schemas. |
@@ -54,7 +54,7 @@ node evals/cells.mjs check                                   # scenario table an
 | Harness | A user types | Agents |
 | --- | --- | --- |
 | Claude Code | `/pstack:<name>` | `pstack:poteto-agent`, `pstack:comment-sicko` |
-| Codex | `$pstack:<name>` | none registered (`docs/specs/codex.md`) |
+| Codex | `$pstack:<name>` | none registered; the adapter puts `pstack/agents/<name>.md` into the `spawn_agent` message |
 | Pi | `/pstack:<name>`, or Pi's native `/skill:<name>` | `pstack-subagent --agent poteto-agent` or `--agent comment-sicko` |
 | opencode | `/pstack:<name>` | `poteto-agent`, `comment-sicko` |
 | Cursor | `/<name>` | as upstream ships them |
@@ -110,10 +110,10 @@ The `grok`, `pi`, `opencode`, `codex` and `eval` layers stay local, and CI runs 
 
 ## Generated files
 
-`scripts/sync-manifests.mjs` writes seven entry files from `pstack/plugin.json`:
+`scripts/sync-manifests.mjs` writes eight entry files from `pstack/plugin.json`:
 
 - `plugin.json` for Grok CLI
-- `.codex-plugin/plugin.json` and `.agents/plugins/marketplace.json` for Codex
+- `.codex-plugin/plugin.json`, `.codex-plugin/hooks.json` and `.agents/plugins/marketplace.json` for Codex
 - `.cursor-plugin/marketplace.json` for Cursor and Grok Bot
 - `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` for Claude Code
 - `package.json` for Pi and opencode

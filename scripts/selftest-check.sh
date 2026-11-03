@@ -33,6 +33,8 @@ run "root plugin.json loads only one skill" grok "jq '.skills = \"./pstack/skill
 run "root plugin.json gets the Agent Plugins \$schema back" codex "jq '{\"\$schema\": \"https://agent-plugins.org/schemas/1.0.0/plugin.schema.json\"} + .' plugin.json >m && mv m plugin.json"
 run "Codex manifest loads only one skill" codex "jq '.skills = \"./pstack/skills/how/\"' .codex-plugin/plugin.json >m && mv m .codex-plugin/plugin.json"
 run "Codex marketplace removed" codex "rm .agents/plugins/marketplace.json"
+run "Codex adapter removed" codex "rm docs/harness/codex.md"
+run "Codex manifest drops the adapter hook" codex "jq 'del(.hooks)' .codex-plugin/plugin.json >m && mv m .codex-plugin/plugin.json"
 run "Claude manifest loads only one skill" claude "jq '.skills = \"./pstack/skills/how/\"' .claude-plugin/plugin.json >m && mv m .claude-plugin/plugin.json"
 run "Claude manifest drops an agent" claude "jq '.agents |= .[:1]' .claude-plugin/plugin.json >m && mv m .claude-plugin/plugin.json"
 run "Claude adapter hook removed" claude "jq 'del(.hooks)' .claude-plugin/plugin.json >m && mv m .claude-plugin/plugin.json"

@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"pstack skills use Cursor names. Before you follow a pstack skill, read ${PLUGIN_ROOT}/docs/harness/codex.md once per session.\""
+          }
+        ]
+      }
+    ]
+  }
+}
