@@ -1,15 +1,17 @@
 # Grok CLI
 
-Last verified 2026-10-22 against `grok 1.0.67 (2fe064390d07)`.
+Last verified 2026-11-03 against `grok 1.0.67 (2fe064390d07)`.
 
 ## Entry file
 
-Grok CLI loads the root `plugin.json`. `scripts/sync-manifests.mjs` writes it as `pstack/plugin.json` plus two keys:
+Grok CLI loads the root `plugin.json`. `scripts/sync-manifests.mjs` writes it as `pstack/plugin.json` without `$schema`, plus two keys:
 
 ```json
 "skills": "./pstack/skills/",
 "agents": "./pstack/agents/"
 ```
+
+`docs/specs/codex.md` says why `$schema` is dropped. Grok loads the same inventory with or without it.
 
 ## Install
 
