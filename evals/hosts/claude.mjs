@@ -28,6 +28,10 @@ export const claude = {
         "--allowedTools", "Read", "Glob", "Grep", "Agent", "Edit", "Write", "TodoWrite",
         ...["status", "diff", "log", "show", "ls-files", "rev-parse", "branch", "add", "commit", "switch", "checkout", "worktree", "merge"].map((sub) => `Bash(git ${sub}:*)`),
         "Bash(ls:*)", "Bash(rg:*)", "Bash(grep:*)", "Bash(cat:*)", "Bash(wc:*)", "Bash(head:*)",
+        // statechart runs its own checker on a spec it writes in a scratch folder outside the project.
+        ...(cell.scenarioSnapshot.skill === "statechart"
+          ? [`Bash(${join(cell.skillsDir, "statechart/scripts/statechart")}:*)`, "Bash(mkdir:*)", "Edit(//tmp/**)"]
+          : []),
       ],
       stdin: cell.prompt,
       env: { CLAUDECODE: undefined, CLAUDE_CODE_ENTRYPOINT: undefined },

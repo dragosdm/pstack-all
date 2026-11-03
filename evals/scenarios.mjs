@@ -98,6 +98,20 @@ export const SCENARIOS = [
     control: ["adapter"],
     why: "A rule file in context overrides the role defaults; here a project-level rule sets the explainer to sonnet low.",
   },
+  {
+    id: "statechart-payment",
+    skill: "statechart",
+    fixture: "invoice-service",
+    overlay: { dir: "payment-flow", staged: false },
+    prompt: "the payment flow in src/payment.js. A customer must never be charged twice for one invoice.",
+    expect: {
+      loaded: true, adapter: true, clean: true, rulesUntouched: true, noRemoteWrites: true,
+      answer: ["```mermaid", "stateDiagram-v2", "classDef (breaks|mayBreak)"],
+    },
+    hosts: { claude: {}, pi: { noLeftover: true } },
+    control: ["adapter"],
+    why: "The chart comes from the skill's checker, which only runs from the harness's skill path; a retry after a timeout charges twice, and the spec stays outside the project.",
+  },
 ];
 
 export const scenarioById = (id) => SCENARIOS.find((s) => s.id === id);
