@@ -2,9 +2,10 @@ import { afterAll, describe, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
 import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { checkCatalog, gradingSha } from "../evals/cells.mjs";
 import { SCENARIOS, armsFor } from "../evals/scenarios.mjs";
+import { claude } from "../evals/hosts/claude.mjs";
 import { opencode } from "../evals/hosts/opencode.mjs";
 import { installShims, withoutCredentials } from "../evals/shims.mjs";
 
@@ -118,6 +119,35 @@ describe("opencode host", () => {
     expect(after).not.toContain("text: adapterLine");
     expect(after).toContain("if (agent) event.system.push({ type: \"text\", text: agent.body })");
     expect(() => opencode.ablate(tree)).toThrow(/no longer pushes the adapter line/);
+  });
+});
+
+describe("claude host", () => {
+  const launched = (id: string) => {
+    const cellDir = join(scratch(), "cell-1");
+    const project = join(cellDir, "invoice-service");
+    const pluginRoot = join(cellDir, "..", "tree-0/pstack-all");
+    const cell = { scenarioSnapshot: SCENARIOS.find((s) => s.id === id)!, project, pluginRoot, skillsDir: join(pluginRoot, "pstack/skills"), prompt: "" };
+    const { argv } = claude.launch(cell, { claudeModel: "sonnet", claudeBudget: 1 });
+    // A bare Edit or Write rule allows that tool on every path, past what acceptEdits accepts.
+    const bareRules = argv.flatMap((a) => (a === "Edit" || a === "Write" ? ["/"] : []));
+    const pathRules = argv.flatMap((a) => /^(?:Edit|Write)\(\/(\/.*?)\/?\*\*\)$/.exec(a)?.[1] ?? []);
+    const addDirs = argv.flatMap((a, i) => (argv[i - 1] === "--add-dir" ? [a] : []));
+    return { cellDir, writable: [...bareRules, ...pathRules, ...addDirs] };
+  };
+  const inside = (dir: string, root: string) => !relative(root, dir).startsWith("..");
+
+  test("a statechart cell can write only inside its own folder, never its shim folder", () => {
+    const { cellDir, writable } = launched("statechart-payment");
+    expect(writable.length).toBeGreaterThan(0);
+    for (const dir of writable) {
+      expect(inside(dir, cellDir)).toBe(true);
+      expect(inside(join(cellDir, "bin"), dir)).toBe(false);
+    }
+  });
+
+  test("other cells get no writable path beyond the project", () => {
+    expect(launched("how-simple").writable).toEqual([]);
   });
 });
 

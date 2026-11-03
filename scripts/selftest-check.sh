@@ -65,6 +65,7 @@ run "eval opencode parser misses subagent spawns" eval "sed -i 's/c.name === \"s
 run "opencode context hook drops the adapter line" opencode "sed -i '/event.system.push({ type: \"text\", text: adapterLine })/d' .opencode/plugins/pstack.js"
 run "eval original-mode regrade ignores the frozen scenario" unit "sed -i 's/    scenario = cell.scenarioSnapshot;/    void 0;/' evals/cells.mjs"
 run "eval gh shim lets writes outside pr and api through" unit "sed -i 's/      \*) write=1 ;;\n    esac ;;\nesac/X/; /checkout|clone|download|watch|help|-h|--help) ;;/{n;s/\*) write=1 ;;/*) ;;/}' evals/shims.mjs"
+run "eval Claude cell allows Write on every path" unit "sed -i 's/\"Agent\", \"TodoWrite\",/\"Agent\", \"Write\", \"TodoWrite\",/' evals/hosts/claude.mjs"
 
 ((bad == 0)) && echo "selftest: every break failed its layer" || echo "selftest: FAIL a break went unnoticed"
 exit "$bad"
