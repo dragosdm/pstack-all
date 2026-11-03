@@ -17,7 +17,7 @@ Codex spawns subagents with the `collaboration` tools.
 | Cursor | Codex |
 | --- | --- |
 | `Task` | `spawn_agent`, then `wait_agent` until each answer arrives. See Spawning. Several `Task` calls in one message are several `spawn_agent` calls in one turn. |
-| `AskQuestion` | `request_user_input` when the session offers it. Otherwise ask in plain text and stop for the answer. |
+| `AskQuestion` | Ask in plain text, with the options as a list, and stop for the answer. Codex's Default mode keeps `request_user_input` for optional questions. |
 | Open a todolist | Keep the list in your reply and update it at each phase. |
 | Run another pstack skill (`/name` or "the **name** skill") | Read `<pstack>/skills/<name>/SKILL.md` and follow it. When you tell the user to type it, write `$pstack:<name>`. |
 | `Grep`, `Glob` | The shell with `rg`. |
@@ -32,7 +32,7 @@ Codex spawns subagents with the `collaboration` tools.
 | `poteto-agent`, `comment-sicko` | Codex does not register pstack's agents. Read `<pstack>/agents/<name>.md`, and put its body, without the frontmatter, at the top of `message`. For `poteto-agent`, also put the absolute path of `<pstack>/skills/poteto-mode/SKILL.md` in `message`. |
 | `readonly: true` | `message` says "do not edit files". Codex has no per-subagent read-only flag, and a subagent gets your sandbox. Check `git status` after it answers. |
 | `readonly: false` | Omit. |
-| `environment: "cloud"` | Run `git worktree add` yourself, then name the worktree path in `message` and tell the subagent to work and commit there. |
+| `environment: "cloud"` | Run `git worktree add` yourself, then name the worktree path in `message` and tell the subagent to work and commit there. The `workspace-write` sandbox keeps `.git` read-only, so `git worktree add` and each git write in the worktree need approval to run outside the sandbox. Request it. When the session cannot ask, as in `codex exec`, clone the repo into a writable directory such as `/tmp`, add the worktrees to that clone, and tell the user where the branches are. |
 | `environment: "local"` | Omit. |
 | `cloud_base_branch: <b>` | Create the worktree from `<b>`. |
 | `run_in_background: true` | Omit. Every spawn runs in the background. |
@@ -48,7 +48,7 @@ The `spawn_agent` description lists the model overrides this session can use, ea
 | `gpt-<version>-<effort>`, such as `gpt-6.1-sol-high` | `model: "gpt-6.1-sol"` and `reasoning_effort: "high"`, when `spawn_agent` lists that model with that effort. Drop `-fast`. |
 | A `claude-*`, `grok-*` or other slug that `spawn_agent` does not list | Omit `model` and `reasoning_effort` so the subagent runs on your model, and say so in one sentence of your final answer. |
 | `auto` or `inherit-parent` | Omit `model` and `reasoning_effort`. |
-| The `pstack-models.mdc` rule, `~/.cursor/rules/pstack-models.mdc` | `~/.codex/pstack-models.md`, or `$CODEX_HOME/pstack-models.md` when `CODEX_HOME` is set. Codex does not load it, so read it when a skill needs a role line. If the file or the role's line is missing, use the skill's default slug. |
+| The `pstack-models.mdc` rule, `~/.cursor/rules/pstack-models.mdc` | `"${CODEX_HOME:-$HOME/.codex}/pstack-models.md"`. Read it with that exact path, so a set `CODEX_HOME` wins. Codex does not load it, so read it when a skill needs a role line. If the file or the role's line is missing, use the skill's default slug. |
 | A role value `<model> <effort>`, such as `gpt-6.1-sol high` | `model: "gpt-6.1-sol"` and `reasoning_effort: "high"`. |
 
 ## setup-pstack
@@ -56,7 +56,7 @@ The `spawn_agent` description lists the model overrides this session can use, ea
 Follow its steps with these changes:
 
 - Detect. The detected models are the overrides that the `spawn_agent` description lists. Write each as `<model> <effort>`, with an effort that the description lists for that model. The effort is the last token, so the budget step works as written.
-- Defaults. Map each default slug with the rows above. A default that `spawn_agent` does not list is `inherit-parent`.
+- Defaults. Map each default slug with the rows above. A default that `spawn_agent` does not list is `inherit-parent`. Every skill default is a Claude or Grok slug, so a first setup maps every role to `inherit-parent`, and the budget changes nothing until the user picks a listed model for a role. Say so when you ask for the budget.
 - Write. Write the rule file named in Models with no frontmatter, then the comment lines, the `# budget` line, and one line per role. Overwrite the whole file. Never put the role lines in `AGENTS.md`.
 
 ## Paths
