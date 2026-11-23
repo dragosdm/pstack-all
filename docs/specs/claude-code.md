@@ -35,7 +35,7 @@ Upstream `cursor/plugins` does not install `pstack/` in Claude Code. `scripts/ge
 2. It rewrites relative links to files it leaves out, such as `automations/` and `assets/`, so they point at GitHub.
 3. It drops `automations/`, `assets/`, `.cursor-plugin/`, and `.gitignore`.
 
-Here Claude loads `pstack/` in place, so nothing needs to be dropped or relinked. The adapter line moves into the `SessionStart` hook, which adds it to the model's context in every session. All 58 skills are covered by one line, instead of 23 skills each carrying it. No `SKILL.md` changes.
+Here Claude loads `pstack/` in place, so nothing needs to be dropped or relinked. The adapter line moves into the `SessionStart` hook, which adds it to the model's context in every session. All 58 skills are covered by one line, instead of 22 skills each carrying it at `7a58391`. No `SKILL.md` changes.
 
 ## Manifest precedence
 
