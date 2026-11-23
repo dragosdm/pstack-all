@@ -1,6 +1,6 @@
 # Agent instructions
 
-pstack-all packages upstream pstack, the `pstack/` folder of `cursor/plugins`, for Cursor, Grok Bot, Grok CLI, Claude Code, Codex, Pi and opencode without changing it. `pstack/` is a byte-for-byte copy pinned by `base/pstack.lock`. This repo owns only the install and adapter layer around it: the entry files, the generator that writes them, the Claude and Codex `SessionStart` hooks, the Pi extensions, the opencode plugin, the Pi, opencode and Codex adapter docs, the checks, the eval cells and the unit tests.
+pstack-all packages upstream pstack, the `pstack/` folder of `cursor/plugins`, for Cursor, Grok Bot, Grok CLI, Claude Code, Codex, Pi, opencode and Antigravity without changing it. `pstack/` is a byte-for-byte copy pinned by `base/pstack.lock`. This repo owns only the install and adapter layer around it: the entry files, the generator that writes them, the Claude and Codex `SessionStart` hooks, the Pi extensions, the opencode plugin, the Antigravity adapter plugin, the Pi, opencode, Codex and Antigravity adapter docs, the checks, the eval cells and the unit tests.
 
 This repo does not author skills. It cannot change what a skill says. A fix to skill prose belongs upstream in `cursor/plugins`, and reaches this repo through a base update.
 
@@ -10,7 +10,7 @@ This repo does not author skills. It cannot change what a skill says. A fix to s
 
 ```
 bun run test                                                 # unit tests, no harness binary, also runs in CI
-scripts/check.sh                                             # all ten layers, needs every harness binary
+scripts/check.sh                                             # all eleven layers, needs every harness binary
 PSTACK_UPSTREAM_DIR=<cursor/plugins clone> scripts/check.sh  # also proves base/pstack.lock against upstream
 scripts/selftest-check.sh                                    # breaks a copy of the repo and expects each break to fail its layer
 node evals/cells.mjs check                                   # scenario table and golden transcripts, no model call
@@ -26,6 +26,8 @@ node evals/cells.mjs check                                   # scenario table an
 | `plugin.json`, `.cursor-plugin/marketplace.json`, `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `.codex-plugin/plugin.json`, `.codex-plugin/hooks.json`, `.agents/plugins/marketplace.json`, `package.json` | `scripts/sync-manifests.mjs` | Generated. Edit the `HARNESSES` table, never the files. |
 | `.pi/`, `.opencode/`, `index.js` | this repo | Pi extensions and the opencode plugin. |
 | `docs/harness/pi.md`, `docs/harness/opencode.md`, `docs/harness/codex.md` | this repo | Adapters that upstream does not ship. |
+| `.agy/plugin.json`, `.agy/agents/` | `scripts/sync-manifests.mjs` | Generated. The Antigravity adapter plugin `pstack-agy`. |
+| `.agy/rules/pstack-adapter.md` | this repo | The Antigravity adapter, as a rule. It lives in `.agy/` because Antigravity copies only the plugin folder on install. |
 | `docs/specs/<harness>.md` | this repo | What was verified per harness, how, and what was not. |
 | `scripts/`, `evals/`, `tests/` | this repo | Checks, eval cells, unit tests. |
 | `base/` | this repo | The lock, the upstream file listings, the test baseline, upstream's catalog validator and schemas. |
@@ -45,6 +47,8 @@ node evals/cells.mjs check                                   # scenario table an
 - Claude Code names. The plugin is `pstack`, so the adapter's `pstack:poteto-agent` and `/pstack:<name>` hold.
 - Codex names. The plugin is `pstack@pstack-all`, and skills are `pstack:<name>`.
 - Pi agent names. They are `poteto-agent` and `comment-sicko`, as upstream names the files, passed as `pstack-subagent --agent <name>`.
+- Antigravity names. The plugins are `pstack`, installed from `pstack/`, and `pstack-agy`, installed from `.agy/`. Skills are `pstack:<name>`, and the agents are `poteto-agent` and `comment-sicko`.
+- The repo root has no `skills/` or `agents/` folder or symlink. Claude Code reads both by default, and `claude plugin validate --strict` fails on a symlinked `skills/` (`docs/specs/antigravity.md`).
 - opencode names. The plugin id is `pstack`, the commands are `pstack:<name>`, and the agents are `poteto-agent` and `comment-sicko`, as the opencode adapter names them.
 - Skill commands. The table in the next section is the standard.
 - Repo-relative paths. Playbooks reference `pstack/skills/...` from the repo root, so `pstack/` stays at the root.
@@ -60,12 +64,15 @@ node evals/cells.mjs check                                   # scenario table an
 | Cursor | `/<name>` | as upstream ships them |
 | Grok CLI | `/<name>` | `grok inspect --json` lists `pstack:poteto-agent` and `pstack:comment-sicko` |
 | Grok Bot | `/<name>` | as upstream ships them |
+| Antigravity | `/pstack:<name>` | `poteto-agent`, `comment-sicko`, from `pstack-agy` |
 
 `/pstack:<name>` is the one standard for the harnesses this repo adapts. pstack skill names such as `how` and `why` are generic, so the namespace keeps a user's own command of the same name. Cursor and Grok name skills from the `name:` field in each `SKILL.md`, and `pstack/` must stay upstream bytes, so they keep `/<name>`. The decision and its reversal of bare names are in `decisions.tsv` at 2026-10-23T19:19:24Z and 2026-10-24T03:14:46Z.
 
 Codex names the skills `pstack:<name>` from the plugin name, and a `$pstack:<name>` mention loads one. `/pstack:<name>` in the Codex TUI is unverified (`docs/specs/codex.md`).
 
 Pi gets `/pstack:<name>` from one registered command per skill in `.pi/extensions/pstack.ts`, so the commands show in Pi's `/` menu. Each command forwards `/skill:<name>`. Pi eval cells type `/skill:<name>`, because the `ablate` arm removes `.pi/extensions/pstack.ts` and its commands with it.
+
+Antigravity names a plugin skill `<plugin>:<path under the plugin's skills/ folder>`. From the repo root that is `pstack:..:pstack:skills:<name>`, so a user installs `pstack/` for `/pstack:<name>` and `.agy/` for the adapter and agents. `docs/specs/antigravity.md` lists the layouts tried.
 
 ## Where each check belongs
 
@@ -76,7 +83,7 @@ Pi gets `/pstack:<name>` from one registered command per skill in `.pi/extension
 | The Cursor catalog passes upstream's validator, and nothing hides pstack from Grok Bot | `scripts/check-catalog.sh` | yes |
 | Both Claude manifests pass the schema | `claude plugin validate --strict` on `.claude-plugin/marketplace.json` and `.claude-plugin/plugin.json` | yes |
 | Deterministic behavior of code this repo owns, with no harness binary | `bun run test`, which runs `tests/*.test.ts` | yes |
-| Install, load and spawn in a real harness binary, against a dummy or scripted local model | a `scripts/check.sh` layer: `grok`, `claude`, `pi`, `opencode`, `codex` or `eval` | no, local |
+| Install, load and spawn in a real harness binary, against a dummy or scripted local model | a `scripts/check.sh` layer: `grok`, `claude`, `pi`, `opencode`, `codex`, `agy` or `eval` | no, local |
 | Skill behavior with a real model | billed cells, `node evals/cells.mjs run` | never |
 | The user path in a real session | `.claude/skills/verify-pstack-all/` | never |
 
@@ -96,7 +103,7 @@ Validate the Claude plugin with both paths, `.claude-plugin/marketplace.json` an
 
 The workflow pins the runner image to `ubuntu-26.04`, and bun and node to the toolchain the base baseline was recorded with, because `check-base.sh` compares upstream's own suite counts. It pins the claude CLI so a new validator rule cannot fail CI without a repo change. Bump a pin on purpose, in its own change.
 
-The `grok`, `pi`, `opencode`, `codex` and `eval` layers stay local, and CI runs only the validate half of the `claude` layer. Running grok, pi and opencode headless on a GitHub runner is unverified (`decisions.tsv`, 2026-10-24T06:20:33Z), and codex was not tried there. Run `scripts/check.sh` locally before you hand over a change. Each final check in the decision log ran on the exact state handed over.
+The `grok`, `pi`, `opencode`, `codex`, `agy` and `eval` layers stay local, and CI runs only the validate half of the `claude` layer. Running grok, pi and opencode headless on a GitHub runner is unverified (`decisions.tsv`, 2026-10-24T06:20:33Z), and codex and agy were not tried there. Run `scripts/check.sh` locally before you hand over a change. Each final check in the decision log ran on the exact state handed over.
 
 ## New guards
 
@@ -110,13 +117,14 @@ The `grok`, `pi`, `opencode`, `codex` and `eval` layers stay local, and CI runs 
 
 ## Generated files
 
-`scripts/sync-manifests.mjs` writes eight entry files from `pstack/plugin.json`:
+`scripts/sync-manifests.mjs` writes these entry files from `pstack/plugin.json` and `pstack/agents/`:
 
 - `plugin.json` for Grok CLI
 - `.codex-plugin/plugin.json`, `.codex-plugin/hooks.json` and `.agents/plugins/marketplace.json` for Codex
 - `.cursor-plugin/marketplace.json` for Cursor and Grok Bot
 - `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` for Claude Code
 - `package.json` for Pi and opencode
+- `.agy/plugin.json` and one `.agy/agents/<name>.md` per upstream agent for Antigravity
 
 To change an entry file, edit the `HARNESSES` table in `scripts/sync-manifests.mjs`, run `node scripts/sync-manifests.mjs`, and commit the script and its output together. `package.json` is shared. Pi reads its `pi` key and opencode reads `main`. An npm script such as `test` also lives in the table's `package.json` row. A new upstream agent under `pstack/agents/` shows up as drift in `.claude-plugin/plugin.json`, because the script lists each agent file.
 

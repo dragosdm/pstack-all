@@ -1,0 +1,11 @@
+{
+  "name": "pstack-agy",
+  "version": "0.15.46",
+  "description": "Antigravity adapter for pstack: install pstack/ alongside it.",
+  "author": {
+    "name": "Dragos Musetescu"
+  },
+  "homepage": "https://github.com/dragosdm/pstack-all",
+  "repository": "https://github.com/dragosdm/pstack-all",
+  "license": "MIT"
+}

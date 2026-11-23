@@ -19,6 +19,7 @@ layer claude scripts/check-claude.sh
 layer pi scripts/check-pi.sh
 layer opencode scripts/check-opencode.sh
 layer codex scripts/check-codex.sh
+layer agy scripts/check-agy.sh
 layer eval scripts/check-eval.sh
 
 echo "==="
@@ -26,4 +27,4 @@ if ((${#failed[@]} > 0)); then
   echo "check: FAIL ${failed[*]}"
   exit 1
 fi
-echo "check: PASS base manifests unit catalog grok claude pi opencode codex eval"
+echo "check: PASS base manifests unit catalog grok claude pi opencode codex agy eval"
