@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process"
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { dirname, join, resolve } from "node:path"
 import { afterAll, describe, expect, setDefaultTimeout, test } from "bun:test"
@@ -71,5 +71,26 @@ describe("sync-manifests", () => {
   test("the Codex adapter hook is not at hooks/hooks.json, which Claude Code also loads from the plugin root", () => {
     expect(json(root, ".codex-plugin/plugin.json").hooks).toBe("./.codex-plugin/hooks.json")
     expect(existsSync(join(root, "hooks/hooks.json"))).toBe(false)
+  })
+
+  test("each Antigravity agent keeps upstream's body and name and description, with no model and every write tool", () => {
+    const split = (text: string) => {
+      const match = /^---\n([\s\S]*?)\n---\n/.exec(text)!
+      return { meta: Bun.YAML.parse(match[1]) as Record<string, unknown>, body: text.slice(match[0].length) }
+    }
+    const names = readdirSync(join(root, "pstack/agents")).filter((name) => name.endsWith(".md"))
+    expect(names.length).toBeGreaterThan(0)
+    for (const name of names) {
+      const upstream = split(read(root, `pstack/agents/${name}`))
+      const agy = split(read(root, `.agy/agents/${name}`))
+      expect(agy.body).toBe(upstream.body)
+      expect(agy.meta).toEqual({
+        name: upstream.meta.name,
+        description: upstream.meta.description,
+        mainAgent: false,
+        tools: ["read_file", "write_file", "edit_file", "run_command", "search_web", "ask_question", "invoke_subagent",
+          "send_message", "manage_subagents", "manage_task"],
+      })
+    }
   })
 })

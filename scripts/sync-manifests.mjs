@@ -13,6 +13,19 @@ const agents = readdirSync(join(ROOT, "pstack/agents"))
   .filter((name) => name.endsWith(".md"))
   .sort()
   .map((name) => `./pstack/agents/${name}`);
+// agy skips an agent whose model is not inherit, flash or pro, and gives an agent with no tools read-only ones. These
+// names match agy 1.5.15's own tool declarations; an unknown name can hang a subagent.
+const AGY_TOOLS = ["read_file", "write_file", "edit_file", "run_command", "search_web", "ask_question", "invoke_subagent",
+  "send_message", "manage_subagents", "manage_task"];
+function agyAgent(file) {
+  const source = readFileSync(join(ROOT, file), "utf8");
+  const match = /^---\n([\s\S]*?)\n---\n/.exec(source);
+  if (!match) throw new Error(`${file}: no frontmatter`);
+  const keep = match[1].split("\n").filter((line) => /^(name|description): \S/.test(line));
+  if (keep.length !== 2) throw new Error(`${file}: want one single-line name and description, found ${keep.length} lines`);
+  const tools = AGY_TOOLS.map((tool) => `  - ${tool}`);
+  return `---\n${[...keep, "mainAgent: false", "tools:", ...tools].join("\n")}\n---\n${source.slice(match[0].length)}`;
+}
 // Upstream writes this line into each SKILL.md of a generated Claude tree; a hook keeps pstack/ unchanged.
 const ADAPTER =
   'echo "pstack skills use Cursor names. Before you follow a pstack skill, read ${CLAUDE_PLUGIN_ROOT}/pstack/docs/harness/claude-code.md once per session."';
@@ -115,18 +128,37 @@ const HARNESSES = [
       },
     }),
   },
+  {
+    harness: "antigravity",
+    file: ".agy/plugin.json",
+    render: () => ({
+      name: "pstack-agy",
+      version: base.version,
+      description: "Antigravity adapter for pstack: install pstack/ alongside it.",
+      author: catalog.owner,
+      homepage: "https://github.com/dragosdm/pstack-all",
+      repository: "https://github.com/dragosdm/pstack-all",
+      license: base.license,
+    }),
+  },
+  ...agents.map((agent) => ({
+    harness: "antigravity",
+    file: `.agy/agents/${agent.split("/").at(-1)}`,
+    render: () => agyAgent(agent),
+  })),
 ];
 
 const check = process.argv.includes("--check");
 let drift = 0;
 for (const { harness, file, render } of HARNESSES) {
   const path = join(ROOT, file);
-  const want = `${JSON.stringify(render(), null, 2)}\n`;
+  const rendered = render();
+  const want = typeof rendered === "string" ? rendered : `${JSON.stringify(rendered, null, 2)}\n`;
   const have = existsSync(path) ? readFileSync(path, "utf8") : undefined;
   if (want === have) {
     console.log(`manifests: ok ${file} (${harness})`);
   } else if (check) {
-    console.log(`manifests: DRIFT ${file} (${harness}) ${have === undefined ? "is missing" : "differs from pstack/plugin.json"}`);
+    console.log(`manifests: DRIFT ${file} (${harness}) ${have === undefined ? "is missing" : "differs from its pstack/ source"}`);
     drift++;
   } else {
     mkdirSync(dirname(path), { recursive: true });
