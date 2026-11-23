@@ -11,6 +11,7 @@ import {
 	launchRun,
 	listRuns,
 	readMetadata,
+	RUN_FLAG,
 	runDisplayName,
 	type InboxMessage,
 	type RunMetadata,
@@ -31,8 +32,22 @@ function displayState(metadata: RunMetadata): string {
 	return effectiveRunState(metadata).padEnd(8);
 }
 
+interface Role {
+	sessionStart(ctx: ExtensionContext): void;
+	agentStart?(ctx: ExtensionContext): void;
+	agentSettled?(ctx: ExtensionContext): void;
+	sessionShutdown(event: { reason: string }, ctx: ExtensionContext): void | Promise<void>;
+}
+
 export default function subagentExtension(pi: ExtensionAPI) {
-	const runDir = process.env.PSTACK_SUBAGENT_RUN_DIR;
+	// Loaded twice, as pstack.ts can be, the second copy's flag would fail Pi's startup. The same process mark applies.
+	const owner = Symbol.for("pstack.pi.subagent");
+	if ((globalThis as any)[owner]) return;
+	(globalThis as any)[owner] = true;
+	pi.on("session_shutdown", () => {
+		(globalThis as any)[owner] = false;
+	});
+	pi.registerFlag(RUN_FLAG, { description: "Run directory of the pstack subagent this pi runs", type: "string" });
 	// The bash tool inherits this process's environment: pstack-subagent lands on PATH and launches this same pi.
 	if (!process.env.PATH?.split(delimiter).includes(binDir)) {
 		process.env.PATH = `${binDir}${delimiter}${process.env.PATH ?? ""}`;
@@ -119,36 +134,49 @@ export default function subagentExtension(pi: ExtensionAPI) {
 		},
 	});
 
-	if (!runDir) {
-		let widgetTimer: ReturnType<typeof setInterval> | undefined;
-		let widgetContext: ExtensionContext | undefined;
+	// Pi parses extension flags only after loading the extensions, so the role is settled on the first session_start.
+	let role: Role | undefined;
+	pi.on("session_start", (_event, ctx) => {
+		const runDir = pi.getFlag(RUN_FLAG);
+		role ??= typeof runDir === "string" ? childRole(pi, runDir) : parentRole();
+		role.sessionStart(ctx);
+	});
+	pi.on("agent_start", (_event, ctx) => role?.agentStart?.(ctx));
+	pi.on("agent_settled", (_event, ctx) => role?.agentSettled?.(ctx));
+	pi.on("session_shutdown", (event, ctx) => role?.sessionShutdown(event, ctx));
+}
 
-		const refreshWidget = (): void => {
-			if (!widgetContext) return;
-			const activeRuns = listRuns(widgetContext.sessionManager.getSessionId())
-				.map((run) => ({ run, state: effectiveRunState(run) }))
-				.filter(({ state }) => state !== "exited");
-			if (activeRuns.length === 0) {
-				widgetContext.ui.setWidget("pstack-subagents", undefined);
-				return;
-			}
+function parentRole(): Role {
+	let widgetTimer: ReturnType<typeof setInterval> | undefined;
+	let widgetContext: ExtensionContext | undefined;
 
-			const visible = activeRuns.slice(0, 5).map(({ run, state }) => {
-				const color =
-					state === "busy" ? "warning" : state === "idle" ? "success" : state === "error" ? "error" : "muted";
-				return widgetContext!.ui.theme.fg(color, `${run.name ?? run.handle}:${state}`);
-			});
-			if (activeRuns.length > visible.length) {
-				visible.push(widgetContext.ui.theme.fg("muted", `+${activeRuns.length - visible.length}`));
-			}
-			widgetContext.ui.setWidget(
-				"pstack-subagents",
-				[widgetContext.ui.theme.fg("dim", "subagents: ") + visible.join(widgetContext.ui.theme.fg("dim", " | "))],
-				{ placement: "belowEditor" },
-			);
-		};
+	const refreshWidget = (): void => {
+		if (!widgetContext) return;
+		const activeRuns = listRuns(widgetContext.sessionManager.getSessionId())
+			.map((run) => ({ run, state: effectiveRunState(run) }))
+			.filter(({ state }) => state !== "exited");
+		if (activeRuns.length === 0) {
+			widgetContext.ui.setWidget("pstack-subagents", undefined);
+			return;
+		}
 
-		pi.on("session_start", (_event, ctx) => {
+		const visible = activeRuns.slice(0, 5).map(({ run, state }) => {
+			const color =
+				state === "busy" ? "warning" : state === "idle" ? "success" : state === "error" ? "error" : "muted";
+			return widgetContext!.ui.theme.fg(color, `${run.name ?? run.handle}:${state}`);
+		});
+		if (activeRuns.length > visible.length) {
+			visible.push(widgetContext.ui.theme.fg("muted", `+${activeRuns.length - visible.length}`));
+		}
+		widgetContext.ui.setWidget(
+			"pstack-subagents",
+			[widgetContext.ui.theme.fg("dim", "subagents: ") + visible.join(widgetContext.ui.theme.fg("dim", " | "))],
+			{ placement: "belowEditor" },
+		);
+	};
+
+	return {
+		sessionStart(ctx) {
 			// Relaunch children that were suspended when this session was last quit or switched away from.
 			for (const run of listRuns(ctx.sessionManager.getSessionId())) {
 				if (!run.suspended || tmuxSessionExists(run.tmuxSession)) continue;
@@ -171,9 +199,8 @@ export default function subagentExtension(pi: ExtensionAPI) {
 			refreshWidget();
 			widgetTimer = setInterval(refreshWidget, 1000);
 			widgetTimer.unref();
-		});
-
-		pi.on("session_shutdown", async (event, ctx) => {
+		},
+		async sessionShutdown(event, ctx) {
 			if (widgetTimer) clearInterval(widgetTimer);
 			widgetTimer = undefined;
 			widgetContext = undefined;
@@ -190,10 +217,11 @@ export default function subagentExtension(pi: ExtensionAPI) {
 				spawnSync("tmux", ["kill-session", "-t", run.tmuxSession], { stdio: "ignore" });
 				await waitForRunShutdown(run.runDir);
 			}
-		});
-		return;
-	}
+		},
+	};
+}
 
+function childRole(pi: ExtensionAPI, runDir: string): Role {
 	let currentContext: ExtensionContext | undefined;
 	let timer: ReturnType<typeof setInterval> | undefined;
 	let processing = false;
@@ -256,41 +284,40 @@ export default function subagentExtension(pi: ExtensionAPI) {
 		}
 	};
 
-	pi.on("session_start", (_event, ctx) => {
-		currentContext = ctx;
-		const metadata = readMetadata(runDir);
-		if (!metadata) return;
-		updateMetadata(runDir, {
-			childSessionId: ctx.sessionManager.getSessionId(),
-			sessionFile: ctx.sessionManager.getSessionFile() ?? metadata.sessionFile,
-			state: ctx.isIdle() ? "idle" : "busy",
-			suspended: undefined,
-			error: undefined,
-		});
-		syncSessionName();
-		if (!timer) {
-			timer = setInterval(() => void processInbox(), 250);
-			timer.unref();
-		}
-		void processInbox();
-	});
-
-	pi.on("agent_start", (_event, ctx) => {
-		currentContext = ctx;
-		updateMetadata(runDir, { state: "busy", hasStarted: true, error: undefined });
-	});
-
-	pi.on("agent_settled", (_event, ctx) => {
-		currentContext = ctx;
-		if (ctx.isIdle()) updateMetadata(runDir, { state: "idle" });
-	});
-
-	pi.on("session_shutdown", (event) => {
-		currentContext = undefined;
-		if (timer) {
-			clearInterval(timer);
-			timer = undefined;
-		}
-		if (event.reason === "quit") updateMetadata(runDir, { state: "exited" });
-	});
+	return {
+		sessionStart(ctx) {
+			currentContext = ctx;
+			const metadata = readMetadata(runDir);
+			if (!metadata) return;
+			updateMetadata(runDir, {
+				childSessionId: ctx.sessionManager.getSessionId(),
+				sessionFile: ctx.sessionManager.getSessionFile() ?? metadata.sessionFile,
+				state: ctx.isIdle() ? "idle" : "busy",
+				suspended: undefined,
+				error: undefined,
+			});
+			syncSessionName();
+			if (!timer) {
+				timer = setInterval(() => void processInbox(), 250);
+				timer.unref();
+			}
+			void processInbox();
+		},
+		agentStart(ctx) {
+			currentContext = ctx;
+			updateMetadata(runDir, { state: "busy", hasStarted: true, error: undefined });
+		},
+		agentSettled(ctx) {
+			currentContext = ctx;
+			if (ctx.isIdle()) updateMetadata(runDir, { state: "idle" });
+		},
+		sessionShutdown(event) {
+			currentContext = undefined;
+			if (timer) {
+				clearInterval(timer);
+				timer = undefined;
+			}
+			if (event.reason === "quit") updateMetadata(runDir, { state: "exited" });
+		},
+	};
 }
