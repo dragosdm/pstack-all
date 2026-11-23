@@ -31,7 +31,7 @@ Upstream's `pstack@cursor-plugins` uses the same plugin name. Uninstall it first
 
 Upstream `cursor/plugins` does not install `pstack/` in Claude Code. `scripts/generate-pstack-harness-trees.mjs` renders a copy at `harness/pstack/claude-code/`, and its catalog points there. The copy differs from `pstack/` in three ways:
 
-1. It inserts one line after the H1 of each `SKILL.md` that uses Cursor names (23 of 58 at `1ba91fc`): read the Claude Code adapter once per session before you follow this skill.
+1. It inserts one line after the H1 of each `SKILL.md` that uses Cursor names (22 of 58 at `7a58391`, 23 of 58 at `1ba91fc`): read the Claude Code adapter once per session before you follow this skill.
 2. It rewrites relative links to files it leaves out, such as `automations/` and `assets/`, so they point at GitHub.
 3. It drops `automations/`, `assets/`, `.cursor-plugin/`, and `.gitignore`.
 
@@ -45,7 +45,7 @@ Grok CLI reads `.claude-plugin/plugin.json` third, after root `plugin.json` and 
 
 `claude plugin details pstack@pstack-all` lists 58 skills and 1 `SessionStart` hook. It lists **0 agents**, because `details` counts only a default `agents/` folder. A model run sees both agents. A minimal plugin with custom agent paths showed the same split, so this is how `details` reports, not a pstack issue.
 
-Upstream's generated tree at `1ba91fc`, installed the same way, lists the same 58 skills and the same 2 agents.
+Upstream's generated tree at `1ba91fc`, installed the same way, lists the same 58 skills and the same 2 agents. At `7a58391` the tree still has 58 skills and 2 agents, counted with `git ls-tree` and not installed.
 
 ## Check
 

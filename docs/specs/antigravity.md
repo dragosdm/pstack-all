@@ -13,7 +13,7 @@ agy plugin install <checkout>/.agy
 
 `pstack/` is upstream, unchanged. It gives the 58 skills as `/pstack:<name>` and the `comment-sicko` agent. `.agy/` is the `pstack-agy` adapter plugin. It gives the adapter rule and both pstack agents with Antigravity frontmatter.
 
-From GitHub, `agy plugin install https://github.com/dragosdm/pstack-all/tree/main/pstack` cloned the repo and installed `pstack` with 58 skills and `comment-sicko`, in a throwaway `HOME`. `https://github.com/dragosdm/pstack-all/tree/antigravity-adapter/.agy` installed `pstack-agy` with both agents and the rule the same way.
+From GitHub, `agy plugin install https://github.com/dragosdm/pstack-all/tree/main/pstack` cloned the repo and installed `pstack` with 58 skills and `comment-sicko`, in a throwaway `HOME`. `https://github.com/dragosdm/pstack-all/tree/main/.agy` installed `pstack-agy` with both agents and the rule the same way, on 2026-11-23 after the merge.
 
 `agy plugin install` copies the folder into `~/.gemini/config/plugins/<name>/`, so the two land in `plugins/pstack/` and `plugins/pstack-agy/`. `agy plugin uninstall pstack` and `agy plugin uninstall pstack-agy` remove them. `scripts/check-agy.sh` runs both installs in a throwaway `HOME`.
 
