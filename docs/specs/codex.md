@@ -27,7 +27,7 @@ Codex names pstack skills `pstack:<name>`. A prompt that mentions `$pstack:<name
 
 ## Manifest precedence
 
-If the plugin root has a `plugin.json` whose `$schema` starts with `https://agent-plugins.org/schemas/`, Codex reads it as an Agent Plugin and does not read `.codex-plugin/plugin.json`. It then logs `ignoring unknown Agent Plugins manifest field` for `skills` and `agents`, and the model gets no pstack skill. compound-engineering drops that `$schema` for the same reason. Its `docs/specs/agent-plugins.md` adds that Codex cuts an Agent Plugin `SKILL.md` to its first 8000 bytes, and five pstack skills are longer than that, `poteto-mode` at 21670 bytes among them.
+If the plugin root has a `plugin.json` whose `$schema` starts with `https://agent-plugins.org/schemas/`, Codex reads it as an Agent Plugin and does not read `.codex-plugin/plugin.json`. It then logs `ignoring unknown Agent Plugins manifest field` for `skills` and `agents`, and the model gets no pstack skill. compound-engineering drops that `$schema` for the same reason. Its `docs/specs/agent-plugins.md` adds that Codex cuts an Agent Plugin `SKILL.md` to its first 8000 bytes, and four pstack skills at 0.15.46 are longer than that, `poteto-mode` at 11238 bytes among them.
 
 So `scripts/sync-manifests.mjs` writes the root `plugin.json`, the Grok CLI entry file, without `$schema`. `scripts/check-grok.sh` passes on it with the same 58 skills and 2 agents as `pstack/`.
 
