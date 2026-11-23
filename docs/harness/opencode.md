@@ -8,7 +8,7 @@ pstack's opencode plugin registers every pstack skill, a `/pstack:<name>` comman
 
 | Cursor | opencode |
 | --- | --- |
-| `Task` | The `subagent` tool, with `agent`, `description` and `prompt`. It returns the subagent's final answer. Several `Task` calls in one message are several `subagent` calls with `background: true`, then wait for each completion notice. Do not sleep or poll. |
+| `Task` | The `subagent` tool, with `agent`, `description` and `prompt`. Every subagent runs in the background. The call returns at once with the subagent's `sessionID`, and its answer arrives later as a `<subagent>` message. Several `Task` calls in one message are several `subagent` calls in one message. Then end your turn with one line that names what you launched. Go on with a step that needs the results only after every `<subagent>` message for them arrived. Do not sleep or poll. |
 | `AskQuestion` | The `question` tool. |
 | Open a todolist | The `todo` tool if the session offers it. Otherwise keep the list in your reply and update it at each phase. |
 | Run another pstack skill (`/name` or "the **name** skill") | The `skill` tool with the skill's id, such as `{"id": "how"}`. It loads the skill even when the skill is not in `<available_skills>`. When you tell the user to type it, write `/pstack:<name>`. |
@@ -25,8 +25,8 @@ pstack's opencode plugin registers every pstack skill, a `/pstack:<name>` comman
 | `environment: "cloud"` | Before the call, run `git worktree add "$(git rev-parse --git-common-dir)/pstack-worktrees/<name>" -b pstack-subagent/<name> <base>` with the `shell` tool, where `<base>` is `HEAD`. Tell the subagent to work and commit only under that absolute path. After the result, run `git worktree remove` on the path and keep the branch. |
 | `environment: "local"` | Omit. |
 | `cloud_base_branch: <b>` | `<b>` as the `<base>` of the worktree above. |
-| `run_in_background: true` | `background: true` |
-| `resume` | `sessionID` set to the earlier subagent's session id, which its result carries. Otherwise start a new subagent and paste the earlier result into its prompt. |
+| `run_in_background: true` | Omit. Every subagent runs in the background. |
+| `resume` | `sessionID` set to the earlier subagent's session id, which its `subagent` call returned. Otherwise start a new subagent and paste the earlier result into its prompt. |
 | `file_attachments` | List the paths in the prompt. |
 
 ## Models

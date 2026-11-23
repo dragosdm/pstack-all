@@ -1,6 +1,6 @@
 # opencode
 
-Last verified 2026-10-23 against `opencode v2.1.4`, whose plugin runtime is Bun 1.4.4. `scripts/check-opencode.sh` also passed against `opencode v2.2.0` on 2026-10-29.
+Last verified 2026-11-23 against `opencode v2.3.2`. The first verification, on 2026-10-23, was against `opencode v2.1.4`, whose plugin runtime is Bun 1.4.4. `scripts/check-opencode.sh` also passed against `opencode v2.2.0` on 2026-10-29.
 
 ## Entry files
 
@@ -77,7 +77,7 @@ It kills the server and the mock on exit. Set `OPENCODE_BIN` to choose the binar
 
 `normalize` takes `loaded` from the plugin record and a `skill` call whose `metadata.directory` is under the tree, the adapter read from a `read` call on `docs/harness/opencode.md`, spawns from `subagent` calls with `explore` as read-only, and the cost from each session's `info.cost`. `ablate` drops the adapter line from the context hook. opencode is a reference column.
 
-`scripts/check-eval.sh` runs two cells against `scripts/opencode-mock-model.mjs` in script mode. A correct `how-complex` run loads `how`, reads the adapter, starts three `explore` subagents in one message and an explainer after them, and names the session model. It passes every criterion. A wrong run loads `how`, runs `git push` with the shell tool and answers. It fails exactly `adapter`, `spawns`, `parallel` and `noRemoteWrites`, so the shell tool inherits the cell's git shim. Mock runs also showed that the ablate arm fails `adapter`, that `ref:6601813` loads, and that `ref:2146173`, from before the plugin, does not.
+`scripts/check-eval.sh` runs two cells against `scripts/opencode-mock-model.mjs` in script mode. A correct `how-complex` run loads `how`, reads the adapter, starts three `explore` subagents in one message, ends its turn until all three `<subagent>` messages arrived, then starts an explainer the same way and names the session model. It passes every criterion. The driver waits until no session is active, so the cell ends only after the background children finish. A wrong run loads `how`, runs `git push` with the shell tool and answers. It fails exactly `adapter`, `spawns`, `parallel` and `noRemoteWrites`, so the shell tool inherits the cell's git shim. Mock runs also showed that the ablate arm fails `adapter`, that `ref:6601813` loads, and that `ref:2146173`, from before the plugin, does not.
 
 ## Not verified
 
@@ -85,13 +85,14 @@ It kills the server and the mock on exit. Set `OPENCODE_BIN` to choose the binar
 - Install from the git URL. Only a local path was loaded.
 - A billed model run. No real model has read the adapter or followed a skill in opencode. No billed opencode cell has run, so the column stays a reference.
 - A billed cell's login. The cell's data dir starts empty, so a login that opencode keeps in its own data dir does not carry over. Only a provider given in `--opencode-config` has been used.
-- How a cell ends when the parent waits on `background: true` subagents. The scripted cells ran every subagent in the foreground. A gap between a child's end and the parent waking could end the cell early.
 - The `explore` mapping for `readonly: true` and the `pstack-worktrees/` prompt check, against a real model.
 - The worktree mapping for `environment: "cloud"` end to end. No run created, used and removed one.
 - Slash dispatch in the TUI. `opencode run "/pstack:how"` sends the text as is, so the check and the cells post the command over the API. `opencode run` 2.1.4 has no flag that dispatches a command.
-- `background: true`, `sessionID` resume, explicit `model` values and the `todo` tool. The scripted run used none of them.
+- `sessionID` resume, explicit `model` values and the `todo` tool. The scripted run used none of them.
+- Whether a real model ends its turn after a spawn, as the adapter says, or writes its answer before the `<subagent>` messages arrive. Only the scripted model has been run against v2.3.2.
 
 ## Gotchas
 
+- From v2.3, the `subagent` tool has no `background` parameter. Every subagent runs in the background, the call returns `The subagent is working in the background (sessionID: ses_...)`, and the answer arrives later as a user message `<subagent sessionID="..." state="completed" description="...">`. Notices that arrive while the parent is busy are queued and delivered together. A parent that answers before every notice arrived gets woken again and answers a second time. With v2.3.2 that made the scripted correct cell end on `done` and fail `announced`, on `main` as well.
 - `opencode models` and `opencode run` without `--standalone` talk to the background service. With moved XDG dirs, `opencode models` tried to start a second service on the configured port and failed.
 - The first `GET /api/plugin` after start can return no local plugin. Plugins load after the server answers.
