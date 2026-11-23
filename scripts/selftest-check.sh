@@ -60,6 +60,7 @@ run "opencode agent body hook disabled" opencode "sed -i 's/if (agent) event.sys
 run "opencode delegates may ask and spawn" opencode "sed -i 's/draft.permissions.push(...delegateDenies)//' .opencode/plugins/pstack.js"
 run "Pi /pstack:<name> steers a busy agent instead of following up" unit "sed -i 's/ctx.isIdle() ? {} : { deliverAs: \"followUp\" }/{}/' .pi/extensions/pstack.ts"
 run "Pi /pstack:<name> returns before a JSON run settles" unit "sed -i 's/ctx.mode === \"print\" || ctx.mode === \"json\"/ctx.mode === \"print\"/' .pi/extensions/pstack.ts"
+run "README states a stale skill count" unit "sed -i 's/same 58 skills and 2 agents as upstream/same 57 skills and 2 agents as upstream/' README.md"
 run "eval grader ignores Pi --tools" eval "sed -i 's/readonly: tools !== null \&\& /readonly: true || /' evals/hosts/pi.mjs"
 run "eval grader counts parallel spawns across turns" eval "sed -i 's/perTurn.set(spawn.turn,/perTurn.set(0,/' evals/criteria.mjs"
 run "agy agent gets upstream's model tier back" agy "sed -i '/^description:/a model: claude-opus-5-5-xhigh-fast' .agy/agents/poteto-agent.md"
