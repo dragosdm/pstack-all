@@ -14,6 +14,9 @@ import { dirname, join } from "node:path";
 
 export type RunState = "starting" | "busy" | "idle" | "exited" | "error";
 
+/** The pi flag that makes a process the child of a run. A flag, because every pi the child starts inherits its environment. */
+export const RUN_FLAG = "pstack-subagent-run";
+
 export interface RunMetadata {
 	version: 1;
 	handle: string;
@@ -211,6 +214,8 @@ export function launchRun(metadata: RunMetadata, initialArgs: string[] = []): vo
 			metadata.model,
 			"--thinking",
 			metadata.thinking,
+			`--${RUN_FLAG}`,
+			metadata.runDir,
 			...(metadata.launchArgs ?? []),
 			...initialArgs,
 		],

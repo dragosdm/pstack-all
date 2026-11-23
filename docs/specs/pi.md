@@ -1,6 +1,6 @@
 # Pi
 
-Last verified 2026-10-22 against `pi 1.4.0` and tmux 3.8.
+Last verified 2026-11-03 against `pi 1.4.0` and tmux 3.8.
 
 ## Entry files
 
@@ -38,6 +38,7 @@ Pi has no built-in subagents. pstack ships its own in `.pi/extensions/subagent/`
 - `--tools` is Pi's own allowlist, so `--tools read,grep,find,ls` makes a child read-only.
 - When the parent session quits, its children stop and are relaunched idle when that session resumes. Only `stop` deletes a run.
 - Subagents cannot spawn subagents.
+- `launchRun` names the run with the `--pstack-subagent-run <run dir>` flag, and only the pi with that flag acts as the bridge. `PSTACK_SUBAGENT_RUN_DIR` stays in the environment only to refuse nested spawns. Every pi the child starts inherits that environment, and when the run was named by it, each one claimed the run. `scripts/check-pi.sh` has the poteto child start `pi --mode rpc` and stay busy for two seconds, and `wait` must still return the child's answer.
 
 `pi-subagents` was the earlier route. It added a `subagent` tool with its own agent registry, chains, and worktrees for workflow children. pstack uses none of those beyond what the table in `docs/harness/pi.md` maps, and the port covers each mapping with one CLI flag.
 
@@ -97,6 +98,7 @@ Set `PI_BIN` to choose the binary. Needs `tmux`.
 - Explicit model flags chosen by a real model. No cell had a pstack-models.md role line that names a Pi model, so every billed spawn inherited the session model.
 - Results on other Pi models. Every billed cell used `openai-codex/gpt-6.1-sol` at medium effort, with the user's global Pi packages loaded.
 - `send`, `--follow-up`, `/pstack-subagent` attach, and suspend and resume on parent quit. No run exercised them.
+- `/reload` inside a child. The bridge reads its flag again on the next `session_start`, and no run checked that `getFlag` still returns it after a reload.
 - Install from a git URL. Only local paths were tested. Git must keep the executable bit on `.pi/bin/pstack-subagent` and `subagent.ts`.
 - Pi's mutable `systemPromptOptions`. The extension returns `systemPrompt`, as Pi's bundled `claude-rules.ts` example does, which replaces the prompt for that run with the old prompt plus one line.
 
@@ -109,4 +111,6 @@ Set `PI_BIN` to choose the binary. Needs `tmux`.
 - `--no-skills` also drops the skills of a package loaded with `-e`.
 - Pi also auto-loads `.pi/extensions/` from the project it runs in, but not the project's `package.json` `pi` key. Inside this repo with pstack installed from another path, both extensions load. The second copy of `pstack.ts` stands down, so commands and the adapter line appear once. Installed from the repo's own path, Pi loads the file once. With nothing installed, only the extensions load, which is why the skills come from `resources_discover` too.
 - Pi sends a slash command it does not know, such as `/how`, to the model as plain text, and no error tells the user. `/pstack:how` and `/skill:how` load the skill.
+- `pi-claude-code` 0.1.0 starts its MCP tool inventory as `pi inert-mcp.mjs tools.json`, which is a full Pi run, on every `claude-code` turn. Before the run flag, that pi took over the child's run and wrote `exited` when it quit, so `wait` failed with `exited before finishing` while the child was still working. Between 2026-10-30 and 2026-11-02, 4 of 4 `claude-code` subagents in the user's sessions failed that way and 0 of 14 `openai-codex` subagents did. On 2026-11-03 the same `claude-code/claude-haiku-5-5` spawn failed before the fix and returned its answer after it.
+- Pi fails startup when two extensions register the same flag. Unlike `pstack.ts`, the subagent extension had no second-copy guard, so a double load used to register two of each handler. It now stands down the same way.
 - A child's model must be reachable from a new process. A provider registered only by a `-e` extension in the parent is unknown to the child, so the check registers its mock in `models.json`.
