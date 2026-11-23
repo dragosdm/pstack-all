@@ -63,4 +63,4 @@ CI (`.github/workflows/ci.yml`) runs the deterministic lane on every push to `ma
 
 Without `PSTACK_UPSTREAM_DIR` the locks are trusted as written. Needs `git`, `bun`, `node`, `npm`, `jq`, `column`, `grok`, `claude`, `pi`, `opencode`, `codex`, `curl`, and `tmux`. Billed cells also need `cursor-agent` for the Cursor reference column. The baseline was recorded with bun 1.3.10 and node v26.12.1, the version CI pins. The 67 statechart tests that need TLC are skipped without `TLA2TOOLS`.
 
-`scripts/selftest-check.sh` breaks a throwaway copy 47 ways and requires each break to fail its own layer. `.audit/check-selftest.txt` holds a recorded run of the first 35 breaks. `.audit/base-selftest.txt` shows the base check failing on four deliberate breaks.
+`scripts/selftest-check.sh` breaks a throwaway copy 49 ways and requires each break to fail its own layer. `.audit/check-selftest.txt` holds a recorded run of the first 35 breaks. `.audit/base-selftest.txt` shows the base check failing on four deliberate breaks.

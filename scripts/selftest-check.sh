@@ -50,6 +50,8 @@ run "Pi command descriptions lose the folded-block parse" pi "sed -i 's/return b
 run "Pi subagent extension dropped from the package" pi "jq '.pi.extensions |= .[:1]' package.json >m && mv m package.json"
 run "Pi subagent ignores --agent" pi "sed -i 's/launchArgs.push(\"--append-system-prompt\", agentFile);//' .pi/extensions/subagent/subagent.ts"
 run "Pi subagent stop leaves the worktree" pi "sed -i 's/\"worktree\", \"remove\"/\"worktree\", \"list\"/' .pi/extensions/subagent/shared.ts"
+run "Pi subagent run is claimed by every pi the child starts" pi "sed -i 's/const runDir = pi.getFlag(RUN_FLAG);/const runDir = process.env.PSTACK_SUBAGENT_RUN_DIR;/' .pi/extensions/subagent/index.ts"
+run "Pi subagent extension loads twice inside the checkout" pi "sed -i '/if ((globalThis as any)\\[owner\\]) return;/d' .pi/extensions/subagent/index.ts"
 run "opencode index.js removed" opencode "rm index.js"
 run "opencode adapter removed" opencode "rm docs/harness/opencode.md"
 run "opencode offers every skill to the model" opencode "sed -i 's/autoinvoke: meta\\[\"disable-model-invocation\"\\] !== true/autoinvoke: true/' .opencode/plugins/pstack.js"
