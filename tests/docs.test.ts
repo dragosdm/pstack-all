@@ -1,7 +1,9 @@
 import { spawnSync } from "node:child_process"
 import { existsSync, readdirSync, readFileSync } from "node:fs"
 import { join, resolve } from "node:path"
-import { describe, expect, test } from "bun:test"
+import { describe, expect, setDefaultTimeout, test } from "bun:test"
+
+setDefaultTimeout(30_000)
 
 const root = resolve(import.meta.dir, "..")
 const skillsDir = join(root, "pstack/skills")
@@ -86,9 +88,12 @@ function mentions(file: string): Mention[] {
   return found
 }
 
-const classified = scannedFiles()
-  .flatMap(mentions)
-  .map((mention) => ({ mention, rule: rules.find((rule) => rule.test(mention)) }))
+// The agents and skills rules together cover every noun mentionPattern captures.
+// Called from the tests, not at import, so setDefaultTimeout bounds the git ls-files call.
+const classify = () =>
+  scannedFiles()
+    .flatMap(mentions)
+    .map((mention) => ({ mention, rule: rules.find((rule) => rule.test(mention))! }))
 
 describe("docs counts", () => {
   test("pstack/ has skills, hidden skills and agents to count", () => {
@@ -98,16 +103,14 @@ describe("docs counts", () => {
   })
 
   test("the docs state skill, hidden-skill and agent counts", () => {
-    const kinds = new Set(classified.map(({ rule }) => rule?.expect))
-    expect([...kinds].filter((kind) => kind !== "skip" && kind).sort()).toEqual(["agents", "hidden", "skills"])
+    const kinds = new Set(classify().map(({ rule }) => rule.expect))
+    expect([...kinds].filter((kind) => kind !== "skip").sort()).toEqual(["agents", "hidden", "skills"])
   })
 
   test("every skill, command and agent count in the docs matches pstack/", () => {
-    const bad = classified.flatMap(({ mention: m, rule }) => {
-      const where = `${m.file}:${m.line} says ${m.count} ${m.noun}`
-      if (!rule) return [`${where}, matches no rule`]
+    const bad = classify().flatMap(({ mention: m, rule }) => {
       if (rule.expect === "skip" || measured[rule.expect] === m.count) return []
-      return [`${where}, pstack/ has ${measured[rule.expect]} (${rule.name})`]
+      return [`${m.file}:${m.line} says ${m.count} ${m.noun}, pstack/ has ${measured[rule.expect]} (${rule.name})`]
     })
     expect(bad.join("\n")).toBe("")
   })
