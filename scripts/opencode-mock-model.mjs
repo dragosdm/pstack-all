@@ -12,17 +12,23 @@ import { createServer } from "node:http"
 const [portFile, logFile, scriptFile] = process.argv.slice(2)
 const script = scriptFile ? JSON.parse(readFileSync(scriptFile, "utf8")) : null
 
+const WAITING = "Waiting for the subagents."
 const text = (content) => (typeof content === "string" ? content : (content ?? []).map((part) => part.text ?? "").join(""))
 const call = (name, args) => ({ toolCall: { id: `call_${name}_${args.agent ?? args.id ?? ""}`, name, arguments: JSON.stringify(args) } })
 
 function scripted(messages) {
   const users = messages.filter((m) => m.role === "user").map((m) => text(m.content)).join("\n")
   const last = messages.at(-1)
-  const turn = messages.filter((m) => m.role === "assistant").length
+  const turn = messages.filter((m) => m.role === "assistant" && text(m.content) !== WAITING).length
   if (!users.includes("Load and execute the `")) {
     const run = /RUN: (.+)/.exec(users)?.[1]
     return run && last.role !== "tool" ? call("shell", { command: run }) : { content: "CHILD done" }
   }
+  // Subagents run in the background, and each result comes back later as a <subagent> user message. Until every child
+  // has reported, the parent ends its turn on WAITING, and those turns play no step.
+  const spawned = messages.filter((m) => m.role === "tool" && text(m.content).includes("sessionID: ses_")).length
+  const reported = messages.filter((m) => m.role === "user" && /^<subagent [^>]*state="completed"/.test(text(m.content))).length
+  if (spawned > reported) return { content: WAITING }
   const step = script[turn] ?? { text: "done" }
   if (step.text !== undefined) return { content: step.text }
   if (step.skill) return call("skill", { id: step.skill })
