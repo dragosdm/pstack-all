@@ -13,7 +13,7 @@ agy plugin install <checkout>/.agy
 
 `pstack/` is upstream, unchanged. It gives the 58 skills as `/pstack:<name>` and the `comment-sicko` agent. `.agy/` is the `pstack-agy` adapter plugin. It gives the adapter rule and both pstack agents with Antigravity frontmatter.
 
-From GitHub, `agy plugin install https://github.com/dragosdm/pstack-all/tree/main/pstack` cloned the repo and installed `pstack` with 58 skills and `comment-sicko`, in a throwaway `HOME`.
+From GitHub, `agy plugin install https://github.com/dragosdm/pstack-all/tree/main/pstack` cloned the repo and installed `pstack` with 58 skills and `comment-sicko`, in a throwaway `HOME`. `https://github.com/dragosdm/pstack-all/tree/antigravity-adapter/.agy` installed `pstack-agy` with both agents and the rule the same way.
 
 `agy plugin install` copies the folder into `~/.gemini/config/plugins/<name>/`, so the two land in `plugins/pstack/` and `plugins/pstack-agy/`. `agy plugin uninstall pstack` and `agy plugin uninstall pstack-agy` remove them. `scripts/check-agy.sh` runs both installs in a throwaway `HOME`.
 
@@ -62,7 +62,6 @@ The tool declarations agy 1.5.15 sends the model, read from the mock: `read_file
 
 - A real Gemini model following the adapter rule. No billed cell exists for Antigravity yet.
 - The interactive TUI. Every run here was `agy -p`.
-- Installing `.agy/` from a GitHub URL, `https://github.com/dragosdm/pstack-all/tree/main/.agy`. `.agy/` is not on `main` yet.
 - `Workspace: "branch"` as the mapping for `environment: "cloud"`. It rests on the `invoke_subagent` description only.
 - `~/.gemini/config/rules/pstack-models.md` loading in every session. It rests on agy's rules docs (`https://antigravity.google/docs/rules.md`).
 - Which `comment-sicko` wins on another machine or agy version. The check pins it on each run.
