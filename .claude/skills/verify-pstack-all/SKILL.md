@@ -1,11 +1,11 @@
 ---
 name: verify-pstack-all
-description: Drive pstack-all the way a user does, by installing it into Claude Code, Grok CLI or Pi from this repo and running pstack skills in real sessions (helper drives for Claude, graded cells for Claude, Pi, Cursor and Grok), and capture proof. Use when a change to the harness entry files (.claude-plugin/, plugin.json, .cursor-plugin/, package.json), the adapter hook, .pi/extensions/, docs/harness/pi.md, or scripts/sync-manifests.mjs needs evidence that pstack still installs, registers, and behaves in a harness.
+description: Drive pstack-all the way a user does, by installing it into Claude Code or Grok CLI from this repo and running pstack skills in real sessions (helper drives for Claude, graded cells for Claude, Pi, opencode, Cursor and Grok), and capture proof. The features map also routes Pi, opencode, Codex and Antigravity to their check layers. Use when a change to the harness entry files (.claude-plugin/, plugin.json, .cursor-plugin/, .codex-plugin/, .agy/, package.json), the adapter hook, .pi/extensions/, .opencode/, docs/harness/, or scripts/sync-manifests.mjs needs evidence that pstack still installs, registers, and behaves in a harness.
 ---
 
 # Verify pstack-all
 
-pstack-all has no server. Its users touch a harness CLI: they add this repo as a marketplace or package, install `pstack`, and type a skill command (`/pstack:<skill>` in Claude Code and opencode, `/pstack:<skill>` or `/skill:<skill>` in Pi, `/<skill>` in Cursor and Grok). This skill drives that path in throwaway config dirs and in real model sessions, and keeps the evidence. Graded skill cells (`evals/cells.mjs`) drive the same path across harnesses. See the features map.
+pstack-all has no server. Its users touch a harness CLI: they add this repo as a marketplace or package, install `pstack`, and type a skill command (`/pstack:<skill>` in Claude Code, opencode and Antigravity, `/pstack:<skill>` or `/skill:<skill>` in Pi, `$pstack:<skill>` in Codex, `/<skill>` in Cursor and Grok). This skill drives that path in throwaway config dirs and in real model sessions, and keeps the evidence. Graded skill cells (`evals/cells.mjs`) drive the same path across harnesses. See the features map.
 
 `scripts/check.sh` proves the files: unchanged `pstack/`, manifest drift, validators, and install inventory. This skill proves the user path. Run both. A green check does not prove a session works.
 

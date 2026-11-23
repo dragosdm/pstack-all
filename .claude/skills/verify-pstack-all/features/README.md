@@ -8,6 +8,7 @@ This directory is the maintained source for verifying how users install and run 
 - `scripts/check.sh` passes on the working tree. Driving a tree whose `pstack/` differs from the lock proves nothing about upstream pstack.
 - `launch.sh` printed `READY run=<id>`, and `doctor.sh <id>` prints only `OK` lines.
 - The helpers never drive your real `~/.claude` or `~/.grok`. Every install goes into the run's instance. Grok cells are the exception and say so.
+- opencode, Codex and Antigravity have no `launch.sh` harness. Their install and adapter proof is their `scripts/check.sh` layer, which runs the real binary in a throwaway `HOME` against a scripted model.
 
 ## Driving conventions
 
@@ -33,5 +34,8 @@ Each feature file has an H1 title and one paragraph, then four H2s in this order
 - [pstack agents in Claude Code](./claude-agents.md) covers `pstack:poteto-agent` and `pstack:comment-sicko` being registered and spawnable.
 - [Grok CLI install](./grok-install.md) covers installing from the repo root and Grok loading the root `plugin.json`.
 - [pstack in Pi](./pi.md) covers the Pi package install, the adapter line, and `pstack-subagent` spawning, waiting and stopping.
+- [pstack in opencode](./opencode.md) covers the `plugins` install, `/pstack:<name>` commands, the two subagents, the adapter line, and background subagents.
+- [pstack in Codex](./codex.md) covers the marketplace install, the trusted SessionStart hook, `$pstack:<name>`, and agents passed in the `spawn_agent` message. There are no cells and no scripted real-model drive.
+- [pstack in Antigravity](./antigravity.md) covers the two installs, `pstack` and `pstack-agy`, `/pstack:<name>` names, the adapter rule, and the two agents. There are no cells and no real-model drive.
 - [Cursor and Grok Bot catalog](./cursor-catalog.md) covers the catalog users add in Cursor. The marketplace install and Grok Bot can't be driven locally. A local `--plugin-dir` session runs through cells.
-- [Graded skill cells](./cells.md) covers skill behavior across Claude Code, Pi, Cursor and Grok: scenarios run by `evals/cells.mjs`, graded from what each harness recorded, with an ablate control.
+- [Graded skill cells](./cells.md) covers skill behavior across Claude Code, Pi, opencode, Cursor and Grok: scenarios run by `evals/cells.mjs`, graded from what each harness recorded, with an ablate control.

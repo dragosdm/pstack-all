@@ -19,11 +19,18 @@ Preconditions:
 
 - `pi` and `tmux` on `PATH`. No helper in `scripts/` launches Pi.
 
-- **Install, adapter and subagents, free.** Run `scripts/check-pi.sh`. It installs the repo into a throwaway `PI_CODING_AGENT_DIR`. Its output must end with `pi: PASS repo root installs as a Pi package with every pstack skill, the adapter extension, and working subagents`, after lines for the skill count, the adapter line in a real request, and a mock-model spawn of `comment-sicko` read-only and `poteto-agent` in a worktree.
+- **Install, adapter and subagents, free.** Run `scripts/check-pi.sh`. It installs the repo into a throwaway `PI_CODING_AGENT_DIR` and drives Pi against a scripted mock model. Its output must end with `pi: PASS repo root installs as a Pi package with every pstack skill, the adapter extension, and working subagents`. The lines before it include:
+  - `pi: get_commands lists 58 skills from pstack/skills, the same names as on disk`
+  - `pi: run inside the checkout with pstack installed from another path too, each pstack:<name> is listed once, without a suffix`, which also proves that a second copy of either extension stays inert
+  - `pi: the system prompt of a print run tells the model to read docs/harness/pi.md`
+  - `pi: /pstack:how loads the how skill with its arguments`
+  - `pi: a print run spawned comment-sicko read-only and poteto-agent in a worktree through pstack-subagent, and waited for both`. The poteto child starts a `pi --mode rpc` of its own, which must not take over the child's run.
+  - `pi: stop removed both runs, their tmux sessions and the worktree, and kept branch pstack-subagent/<handle>`
 - **A skill in a real session, billed.** `node evals/cells.mjs run --scenario how-simple,how-complex --host pi` ([Graded skill cells](./cells.md)). Proof is `ok` in `summary.md`, with each cell's `run.json` spawns taken from the child `metadata.json` that `pstack-subagent` writes.
 
 ## Gotchas
 
-- Pi cells use your real `~/.pi/agent` for the login, so your global Pi packages and context files load too. The run adds a workbench entry to `~/.pi/agent/trust.json` and restores the file's bytes afterwards.
-- An interactive child can't answer a project trust prompt. Worktrees live in `<repo git dir>/pstack-worktrees/<handle>`, inside the trusted project, and every child gets `--extension <package root>` so it keeps the bridge `wait` depends on.
+- Pi cells use `--pi-agent-dir`, else `$PI_CODING_AGENT_DIR`, else your real `~/.pi/agent`, for the login, so your global Pi packages and context files load too. `evals/cells.mjs` adds a workbench entry to that dir's `trust.json` and afterwards restores the file's bytes. If something else changed the file meanwhile, it removes only the workbench entry.
+- An interactive child can't answer a project trust prompt. Worktrees live in `<repo git dir>/pstack-worktrees/<handle>`, inside the trusted project. Every child gets `--extension <package root>`, or only the subagent extension under `--no-extensions`, so it keeps the bridge that `wait` depends on.
+- A child pi learns it is the bridge from the `--pstack-subagent-run <run dir>` flag on its own argv, not from the environment. Any `pi` the child starts lacks the flag, so it can't claim the run. `PSTACK_SUBAGENT_RUN_DIR` still exists, but only to refuse nested spawns.
 - `pstack-subagent stop` deletes the child's run folder. Set `PSTACK_SUBAGENT_KEEP_DIR` to keep a copy, as cells do.
