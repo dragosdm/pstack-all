@@ -52,7 +52,7 @@ const rules: Rule[] = [
 
 // A zero counts only before "agents": "loads 0 skills" in docs/specs/grok-cli.md is a failure case, not a pstack count.
 const mentionPattern =
-  /(?<![\w.])([1-9]\d{0,2}|0(?= agents\b))(?![\d.]\d)(?: of ([1-9]\d{0,2})(?![\d.]\d))?(?:\s+[^\s\d.,;|]+){0,2}?\s+(skills|commands|agents)\b/g
+  /(?<![\w.])([1-9]\d{0,2}|0(?= agents\b))(?![\d.]\d)(?: of ([1-9]\d{0,2})(?![\d.]\d))?(?:\s+[^\s\d.,;|]+){0,2}?\s+(skills|skill names|commands|agents)\b/g
 
 function scannedFiles(): string[] {
   const paths = ["README.md", "AGENTS.md", "docs", "evals/README.md", ".claude/skills/verify-pstack-all"]
