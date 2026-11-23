@@ -60,7 +60,7 @@ scripts_dir="$work/pstack/skills/poteto-mode/scripts"
 counts() { grep -Eo "$2" "$1" | tail -1 | grep -Eo '[0-9]+' || echo 0; }
 
 bun_exit=0 tsc_exit=0 node_exit=0
-(cd "$scripts_dir" && bun test watch-pr check-plan.test.ts) >"$work/bun-test.log" 2>&1 || bun_exit=$?
+(cd "$scripts_dir" && bun test watch-pr) >"$work/bun-test.log" 2>&1 || bun_exit=$?
 (cd "$scripts_dir" && bun x tsc --project watch-pr/tsconfig.json --noEmit --strict) >"$work/tsc.log" 2>&1 || tsc_exit=$?
 # Upstream CI installs fast-check at the repo root with --no-save, since statechart/scripts has no lockfile.
 fast_check="$(jq -r '.devDependencies["fast-check"]' pstack/skills/statechart/scripts/package.json)"
