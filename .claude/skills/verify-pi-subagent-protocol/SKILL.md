@@ -35,7 +35,7 @@ Exit 0 means every row ended as expected and the covered code has not changed si
 
 ## Coverage
 
-Sync commit: `SYNC=8d42516` in `check.sh`. The model was last confirmed against the covered files at that commit.
+Sync commit: `SYNC=37bae0a` in `check.sh`. The model was last confirmed against the covered files at that commit.
 
 | Model action (`spec/PiSubagent.tla`) | Code |
 | --- | --- |
@@ -85,7 +85,7 @@ Both share a cause: `updateMetadata` is an unlocked read-modify-write across pro
 
 ## When the code changes
 
-1. Run `git diff 8d42516 -- .pi/extensions/subagent/` (the `SYNC` commit). `check.sh` lists drifted files too. If nothing in the coverage table changed, run the check and you are done.
+1. Run `git diff 37bae0a -- .pi/extensions/subagent/` (the `SYNC` commit). `check.sh` lists drifted files too. If nothing in the coverage table changed, run the check and you are done.
 2. For each changed function, find its action in the coverage table and compare. Ask three questions. Did a file read or write move, appear or disappear? Did an `await` appear inside a handler or `processInbox`? That would split one child step. Did a condition change, such as `ctx.isIdle()` or `hasStarted`?
 3. Edit the action in `spec/PiSubagent.tla` so it does what the code now does, with a comment naming the code. Then run `check.sh`.
 4. Read any unexpected result.
