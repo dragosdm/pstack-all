@@ -28,11 +28,16 @@ EXTENDS Naturals, FiniteSets, TLC
 CONSTANTS N, WithRename, WithQuit, Mutant
 
 ASSUME N \in Nat /\ WithRename \in BOOLEAN /\ WithQuit \in BOOLEAN
-ASSUME Mutant \in {"none", "skip-unlink", "skip-mark-busy", "settle-ignores-idle"}
+ASSUME Mutant \in {"none", "skip-unlink", "skip-mark-busy", "settle-ignores-idle", "meta-before-inbox"}
 
 Msgs == 0..N
 Live == {"starting", "busy", "idle"}          \* the states effectiveRunState checks tmux for
 MinOf(S) == CHOOSE m \in S : \A o \in S : m <= o
+
+\* waitSubagent loop, in code order: the inbox, then getRun. "meta-before-inbox" is the order before the fix.
+WFirst  == IF Mutant = "meta-before-inbox" THEN "Wmeta" ELSE "Winbox"
+WSecond == IF Mutant = "meta-before-inbox" THEN "Winbox" ELSE "Wmeta"
+WAfter(step) == IF step = WFirst THEN WSecond ELSE "W3"
 
 VARIABLES
   \* Shared files and processes.
@@ -79,7 +84,7 @@ Init ==
   /\ deliv = [m \in Msgs |-> 0]
   /\ cPc = "boot" /\ cSnap = meta /\ cPatch = [state |-> "idle"] /\ cNext = "ready"
   /\ cBatch = {} /\ cCur = 0 /\ booted = FALSE
-  /\ dPc = "W1" /\ dK = 0 /\ dBase = {0} /\ dMeta = meta /\ dPending = FALSE
+  /\ dPc = WFirst /\ dK = 0 /\ dBase = {0} /\ dMeta = meta /\ dPending = FALSE
   /\ dReply = {} /\ sent = {0}
   /\ rPc = (IF WithRename THEN "idle" ELSE "off") /\ rSnap = meta
   /\ qPc = (IF WithQuit THEN "idle" ELSE "off") /\ qSnap = meta
@@ -237,25 +242,27 @@ DSendCheck ==
   /\ UNCHANGED <<dK, dBase, dMeta, dPending, dReply, sent>>
   /\ UNCHANGED <<meta, inbox, tmux>> /\ UNCHANGED piVars /\ UNCHANGED childVars /\ UNCHANGED otherVars
 
-\* writeFileSync(temporary) then renameSync into inbox/. `send` returns; the next `wait` starts.
+\* writeFileSync(temporary) then renameSync into inbox/. `send` returns, then the driver runs `wait`,
+\* or sends the next message at once, as a steer or a follow-up while the child is busy.
 DSendWrite ==
   /\ dPc = "S2"
   /\ inbox' = inbox \cup {dK} /\ sent' = sent \cup {dK} /\ dBase' = sent \cup {dK}
-  /\ dPc' = "W1"
-  /\ UNCHANGED <<dK, dMeta, dPending, dReply>>
+  /\ \/ dPc' = WFirst /\ UNCHANGED dK
+     \/ dK < N /\ dPc' = "S1" /\ dK' = dK + 1
+  /\ UNCHANGED <<dMeta, dPending, dReply>>
   /\ UNCHANGED <<meta, tmux>> /\ UNCHANGED piVars /\ UNCHANGED childVars /\ UNCHANGED otherVars
 
-\* waitSubagent loop: const metadata = getRun(handle)
+\* const metadata = getRun(handle)
 DWaitMeta ==
-  /\ dPc = "W1"
-  /\ dMeta' = meta /\ dPc' = "W2"
+  /\ dPc = "Wmeta"
+  /\ dMeta' = meta /\ dPc' = WAfter("Wmeta")
   /\ UNCHANGED <<dK, dBase, dPending, dReply, sent>>
   /\ UNCHANGED <<meta, inbox, tmux>> /\ UNCHANGED piVars /\ UNCHANGED childVars /\ UNCHANGED otherVars
 
-\* const pending = readdirSync(inboxDir(...)).some(...)
+\* const pending = existsSync(queueDir) && readdirSync(queueDir).some(...)
 DWaitInbox ==
-  /\ dPc = "W2"
-  /\ dPending' = (inbox # {}) /\ dPc' = "W3"
+  /\ dPc = "Winbox"
+  /\ dPending' = (inbox # {}) /\ dPc' = WAfter("Winbox")
   /\ UNCHANGED <<dK, dBase, dMeta, dReply, sent>>
   /\ UNCHANGED <<meta, inbox, tmux>> /\ UNCHANGED piVars /\ UNCHANGED childVars /\ UNCHANGED otherVars
 
@@ -265,7 +272,7 @@ DWaitDecide ==
   /\ LET eff == IF dMeta.state \in Live /\ ~tmux THEN "exited" ELSE dMeta.state
      IN dPc' = CASE eff = "exited"                                -> "failed"
                []   dMeta.hasStarted /\ eff = "idle" /\ ~dPending -> "W4"
-               []   OTHER                                         -> "W1"
+               []   OTHER                                         -> WFirst
   /\ UNCHANGED <<dK, dBase, dMeta, dPending, dReply, sent>>
   /\ UNCHANGED <<meta, inbox, tmux>> /\ UNCHANGED piVars /\ UNCHANGED childVars /\ UNCHANGED otherVars
 

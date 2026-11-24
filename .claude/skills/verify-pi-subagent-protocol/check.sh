@@ -22,12 +22,13 @@ COVERED=(.pi/extensions/subagent/shared.ts .pi/extensions/subagent/index.ts .pi/
 ROWS='
 exactly-once         |2|FALSE|FALSE|none               |ExactlyOnce          |pass
 idle-means-answered  |2|FALSE|FALSE|none               |IdleMeansAnswered    |pass
-wait-fresh-reply     |2|FALSE|FALSE|none               |WaitReturnsFreshReply|finding
+wait-fresh-reply     |2|FALSE|FALSE|none               |WaitReturnsFreshReply|pass
 rename-lost-update   |2|TRUE |FALSE|none               |IdleMeansAnswered    |finding
 quit-lost-suspend    |1|FALSE|TRUE |none               |SuspendKept          |finding
 mutant-skip-unlink   |2|FALSE|FALSE|skip-unlink        |ExactlyOnce          |mutant
 mutant-skip-busy     |2|FALSE|FALSE|skip-mark-busy     |IdleMeansAnswered    |mutant
 mutant-settle-idle   |2|FALSE|FALSE|settle-ignores-idle|IdleMeansAnswered    |mutant
+mutant-wait-order    |2|FALSE|FALSE|meta-before-inbox  |WaitReturnsFreshReply|mutant
 '
 
 TLA_VERSION=1.7.4
