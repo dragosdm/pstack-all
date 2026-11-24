@@ -1,7 +1,25 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs"
+import { spawnSync } from "node:child_process"
+import {
+  appendFileSync,
+  closeSync,
+  constants,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  openSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  unlinkSync,
+  writeFileSync,
+  writeSync,
+} from "node:fs"
+import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
-import { beforeEach, describe, expect, test } from "bun:test"
+import { afterAll, beforeEach, describe, expect, setDefaultTimeout, test } from "bun:test"
 import pstackPiExtension from "../.pi/extensions/pstack.ts"
+
+setDefaultTimeout(30_000)
 
 const root = resolve(import.meta.dir, "..")
 const skillsDir = join(root, "pstack/skills")
@@ -118,5 +136,61 @@ describe("pi extension", () => {
     const added = systemPrompt.slice("base prompt".length).trim().split("\n")
     expect(added).toHaveLength(1)
     expect(added[0]).toContain(join(root, "docs/harness/pi.md"))
+  })
+})
+
+const scratch = mkdtempSync(join(tmpdir(), "pstack-subagent-"))
+afterAll(() => rmSync(scratch, { recursive: true, force: true }))
+
+function assistantEntry(id: string, parentId: string | null, text: string): string {
+  return `${JSON.stringify({ type: "message", id, parentId, message: { role: "assistant", content: [{ type: "text", text }] } })}\n`
+}
+
+describe("pstack-subagent wait", () => {
+  test("a poll between wait's reads does not make wait print the previous reply", async () => {
+    const agentDir = join(scratch, "agent")
+    const runDir = join(agentDir, "pstack-subagents", "abc123")
+    const bin = join(scratch, "bin")
+    mkdirSync(join(runDir, "inbox"), { recursive: true })
+    mkdirSync(bin, { recursive: true })
+    writeFileSync(join(bin, "tmux"), "#!/bin/sh\nexit 0\n", { mode: 0o755 })
+    const sessionFile = join(runDir, "session.jsonl")
+    writeFileSync(sessionFile, assistantEntry("a1", null, "reply to the task"))
+    const inboxFile = join(runDir, "inbox", "1-send.json")
+    writeFileSync(inboxFile, `${JSON.stringify({ message: "second", delivery: "auto" })}\n`)
+    const metadataFile = join(runDir, "metadata.json")
+    expect(spawnSync("mkfifo", [metadataFile]).status).toBe(0)
+    const metadata = (state: string) =>
+      JSON.stringify({
+        version: 1, handle: "abc123", tmuxSession: "pstack-subagent-abc123", runDir, sessionFile, cwd: scratch,
+        provider: "p", model: "m", thinking: "medium", state, hasStarted: true, createdAt: "", updatedAt: "",
+      })
+
+    const wait = Bun.spawn(["node", join(root, ".pi/extensions/subagent/subagent.ts"), "wait", "abc123", "--timeout", "20"], {
+      env: { PATH: `${bin}:${process.env.PATH}`, PI_CODING_AGENT_DIR: agentDir },
+      stdout: "pipe",
+      stderr: "pipe",
+    })
+    // Each read of metadata.json opens the FIFO. The first read returns the state from before the child's poll, and
+    // the poll runs while that read is in flight. Later reads see the child busy, then idle with the new reply.
+    let reads = 0
+    while (wait.exitCode === null) {
+      let fd: number
+      try {
+        fd = openSync(metadataFile, constants.O_WRONLY | constants.O_NONBLOCK)
+      } catch {
+        await Bun.sleep(5)
+        continue
+      }
+      reads++
+      if (reads === 1) unlinkSync(inboxFile)
+      if (reads === 2) appendFileSync(sessionFile, assistantEntry("a2", "a1", "reply to second"))
+      writeSync(fd, metadata(reads === 2 ? "busy" : "idle"))
+      closeSync(fd)
+      // wait polls every 500 ms. Pausing lets this read reach EOF before the FIFO is opened for the next one.
+      await Bun.sleep(100)
+    }
+    await wait.exited
+    expect(await new Response(wait.stdout).text()).toBe("abc123 finished\n\nreply to second\n")
   })
 })
