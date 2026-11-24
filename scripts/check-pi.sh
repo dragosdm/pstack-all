@@ -161,5 +161,25 @@ else
   status=1
 fi
 
+# The parent quits by marking each running child suspended, then killing its tmux session. A quit soon after a spawn lands
+# while the child is still starting, and the child's session_start must keep the mark, or the parent's next session
+# neither relaunches the run nor keeps it.
+subagent() { (cd "$work/cwd" && PSTACK_PI_BIN="$pi" PI_OFFLINE=1 "$root/.pi/bin/pstack-subagent" "$@"); }
+held="$(subagent spawn --name held --provider pstack-mock --model mock --thinking off --prompt probe | sed -nE 's/^Spawned held \(([a-z0-9]+)\)$/\1/p')"
+meta="$PI_CODING_AGENT_DIR/pstack-subagents/$held/metadata.json"
+node --input-type=module -e "import { updateMetadata } from '$root/.pi/extensions/subagent/shared.ts'; updateMetadata(process.argv[1], { suspended: true })" "$(dirname "$meta")"
+early="$(jq -r '.childSessionId // "none"' "$meta")"
+for _ in $(seq 100); do [[ "$(jq -r '.childSessionId // empty' "$meta")" ]] && break; sleep 0.1; done
+if [[ "$early" != none ]]; then
+  echo "pi: FAIL the child ran session_start before the suspend mark, so the check proved nothing"
+  status=1
+elif [[ "$(jq -r '.childSessionId // empty' "$meta")" && "$(jq -r '.suspended' "$meta")" == true ]]; then
+  echo "pi: a suspend mark written while the child started survived its session_start"
+else
+  echo "pi: FAIL the child's session_start left $(jq -c '{suspended, childSessionId}' "$meta")"
+  status=1
+fi
+subagent stop "$held" >/dev/null
+
 ((status == 0)) || exit 1
 echo "pi: PASS repo root installs as a Pi package with every pstack skill, the adapter extension, and working subagents"
