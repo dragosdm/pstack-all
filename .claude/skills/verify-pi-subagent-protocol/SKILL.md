@@ -35,7 +35,7 @@ Exit 0 means every row ended as expected and the covered code has not changed si
 
 ## Coverage
 
-Sync commit: `SYNC=66af4d4` in `check.sh`. The model was last confirmed against the covered files at that commit.
+Sync commit: `SYNC=8d42516` in `check.sh`. The model was last confirmed against the covered files at that commit.
 
 | Model action (`spec/PiSubagent.tla`) | Code |
 | --- | --- |
@@ -45,8 +45,8 @@ Sync commit: `SYNC=66af4d4` in `check.sh`. The model was last confirmed against 
 | `ChildAgentStart`, `ChildAgentSettled` | `childRole().agentStart`, `agentSettled` |
 | `ChildPollStart`, `ChildPollNext`, `ChildPollSend`, `ChildPollUnlink` | `processInbox` in `childRole`: `readdirSync`, `updateMetadata busy`, `pi.sendUserMessage`, `unlinkSync` |
 | `ChildShutdown` | `childRole().sessionShutdown` with reason `quit` |
-| `DSendCheck`, `DSendWrite` | `sendSubagent`: `getRun`, `tmuxSessionExists`, tmp file, `renameSync` into `inbox/` |
-| `DWaitMeta`, `DWaitInbox`, `DWaitDecide`, `DWaitRead` | `waitSubagent`'s loop, in code order: `getRun`, `readdirSync(inbox)`, `effectiveRunState`, `readLatestAssistant` |
+| `DSendCheck`, `DSendWrite` | `sendSubagent`: `getRun`, `tmuxSessionExists`, tmp file, `renameSync` into `inbox/`. After a send the driver may wait or send again, as a steer or `--follow-up` does |
+| `DWaitInbox`, `DWaitMeta`, `DWaitDecide`, `DWaitRead` | `waitSubagent`'s loop, in code order: `readdirSync(inbox)`, `getRun`, `effectiveRunState`, `readLatestAssistant` |
 | `RRead`, `RWrite` | `renameSubagent`: `updateMetadata(..., {name})` |
 | `QStep` | `parentRole().sessionShutdown`: `listRuns`, `tmuxSessionExists`, `updateMetadata({suspended: true})`, `tmux kill-session`, `waitForRunShutdown` |
 | `PiTakeTask`, `PiAgentStart`, `PiTurnBegin`, `PiTurnEnd`, `PiRunAgain`, `PiSettle` | pi's agent loop, from pi 1.5.2's `docs/extensions.md` and `docs/json.md`, not from code in this repo |
@@ -55,7 +55,7 @@ One TLC step is one file operation or one pi event. The child's steps never inte
 
 ## Scope
 
-Verified, for every order of steps: one run, the task plus N = 2 sent messages (N = 1 with quit), at most one `rename`, and one parent quit. Each row explores fewer than 4,000 states.
+Verified, for every order of steps: one run, the task plus N = 2 sent messages (N = 1 with quit), each followed by a `wait` or by the next `send`, at most one `rename`, and one parent quit. Each row explores fewer than 5,000 states.
 
 Assumptions, from pi's docs rather than its code:
 
@@ -76,15 +76,16 @@ Not covered:
 
 Each is a `finding` row. Run `check.sh <row>` for the full trace.
 
-1. `wait-fresh-reply`: `wait` can return the previous answer. `waitSubagent` reads `metadata.json` before it lists the inbox. Trace: the child answered the task, so `metadata.json` says `idle`. The driver runs `send 1`. `wait` reads `metadata.json` (`idle`). The child's poll marks the run `busy`, hands message 1 to pi, and deletes the inbox file. `wait` lists the inbox (empty), decides "finished", and prints the reply to the task. Fix direction: list the inbox before reading `metadata.json`. In a scratch copy of the model with the two steps swapped, this row passes, while `rename-lost-update` still fails.
-2. `rename-lost-update`: `rename` can overwrite the child's state. `renameSubagent` reads `metadata.json` while the child is `idle`. The child then marks it `busy` for message 1 and deletes the inbox file. `rename` writes back its stale copy, so `metadata.json` says `idle` and the inbox is empty while message 1 is unanswered. The same lost write can reset `hasStarted` to false, so `wait` spins until its timeout.
-3. `quit-lost-suspend`: the parent's `suspended` mark can be lost. `parentRole().sessionShutdown` writes `suspended: true` between a child handler's read and write of `metadata.json`, and the child's write drops the mark. The child's `sessionStart` also writes `suspended: undefined`, so a parent that quits while the child is still starting loses the mark that way. The shortest trace takes this path. A scratch run that let the parent quit only after `agent_start` found the `agent_settled` handler doing the same. Then the run is not resumed, and the next quit deletes it.
+1. `rename-lost-update`: `rename` can overwrite the child's state. `renameSubagent` reads `metadata.json` while the child is `idle`. The child then marks it `busy` for message 1 and deletes the inbox file. `rename` writes back its stale copy, so `metadata.json` says `idle` and the inbox is empty while message 1 is unanswered. The same lost write can reset `hasStarted` to false, so `wait` spins until its timeout. Reach: no adapter doc, skill or eval tells a model to run `rename`. Only its usage text names it, and the race needs a child write within about 30 to 60 µs of the rename.
+2. `quit-lost-suspend`: the parent's `suspended` mark can be lost, in two ways. (a) `parentRole().sessionShutdown` writes `suspended: true` between a child handler's read and write of `metadata.json`, and the child's write drops the mark. (b) The child's `sessionStart` writes `suspended: undefined`. If it runs in the few milliseconds between the parent's write and the SIGHUP from `tmux kill-session`, it clears the mark. The shortest trace takes path (b). On resume the run is not relaunched, and the next quit runs `discardRun` on it, which deletes its task and session. Reach of (b), on a real pi 1.5.2 child against a scripted model: a parent quit 212 to 232 ms after spawn lost the mark in 10 of 33 runs, and quits outside that window lost it in none. The child boots in about 300 ms. Pi killed before then never runs `session_start`.
 
-Findings 2 and 3 share a cause: `updateMetadata` is an unlocked read-modify-write across processes.
+Finding 1 and path (a) share a cause: `updateMetadata` is an unlocked read-modify-write across processes. Path (b) is the child clearing `suspended`, a field the parent owns.
+
+`wait-fresh-reply` was a finding until `waitSubagent` listed the inbox before it read `metadata.json`. `tests/pi-extension.test.ts` reproduces it on the real CLI, and the `mutant-wait-order` row keeps the old order failing in the model.
 
 ## When the code changes
 
-1. Run `git diff 66af4d4 -- .pi/extensions/subagent/` (the `SYNC` commit). `check.sh` lists drifted files too. If nothing in the coverage table changed, run the check and you are done.
+1. Run `git diff 8d42516 -- .pi/extensions/subagent/` (the `SYNC` commit). `check.sh` lists drifted files too. If nothing in the coverage table changed, run the check and you are done.
 2. For each changed function, find its action in the coverage table and compare. Ask three questions. Did a file read or write move, appear or disappear? Did an `await` appear inside a handler or `processInbox`? That would split one child step. Did a condition change, such as `ctx.isIdle()` or `hasStarted`?
 3. Edit the action in `spec/PiSubagent.tla` so it does what the code now does, with a comment naming the code. Then run `check.sh`.
 4. Read any unexpected result.

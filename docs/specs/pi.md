@@ -39,6 +39,7 @@ Pi has no built-in subagents. pstack ships its own in `.pi/extensions/subagent/`
 - When the parent session quits, its children stop and are relaunched idle when that session resumes. Only `stop` deletes a run.
 - Subagents cannot spawn subagents.
 - `launchRun` names the run with the `--pstack-subagent-run <run dir>` flag, and only the pi with that flag acts as the bridge. `PSTACK_SUBAGENT_RUN_DIR` stays in the environment only to refuse nested spawns. Every pi the child starts inherits that environment, and when the run was named by it, each one claimed the run. `scripts/check-pi.sh` has the poteto child start `pi --mode rpc` and stay busy for two seconds, and `wait` must still return the child's answer.
+- `wait` lists the inbox before it reads `metadata.json`. In the other order, a child that took the message between the two reads left `wait` with `idle` and an empty inbox, and `wait` printed the previous reply. `tests/pi-extension.test.ts` makes `metadata.json` a FIFO to run the child's poll during that read.
 
 `pi-subagents` was the earlier route. It added a `subagent` tool with its own agent registry, chains, and worktrees for workflow children. pstack uses none of those beyond what the table in `docs/harness/pi.md` maps, and the port covers each mapping with one CLI flag.
 

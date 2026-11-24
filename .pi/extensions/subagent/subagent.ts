@@ -330,10 +330,10 @@ async function waitSubagent(args: string[]): Promise<void> {
 	const deadline = Date.now() + timeoutSeconds * 1000;
 
 	while (Date.now() < deadline) {
+		// The inbox is read first: the child marks the run busy before it takes a message out of the inbox.
+		const queueDir = inboxDir(runDirForHandle(handle));
+		const pending = existsSync(queueDir) && readdirSync(queueDir).some((file) => file.endsWith(".json"));
 		const metadata = getRun(handle);
-		const pending = existsSync(inboxDir(metadata.runDir))
-			? readdirSync(inboxDir(metadata.runDir)).some((file) => file.endsWith(".json"))
-			: false;
 		const state = effectiveRunState(metadata);
 		if (state === "error") fail(metadata.error || `${handle} failed`);
 		if (state === "exited") fail(`${handle} exited before finishing`);
