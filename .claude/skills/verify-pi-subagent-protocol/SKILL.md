@@ -35,7 +35,7 @@ Exit 0 means every row ended as expected and the covered code has not changed si
 
 ## Coverage
 
-Sync commit: `SYNC=37bae0a` in `check.sh`. The model was last confirmed against the covered files at that commit.
+Sync commit: `SYNC=2e52b4c` in `check.sh`. The model was last confirmed against the covered files at that commit.
 
 | Model action (`spec/PiSubagent.tla`) | Code |
 | --- | --- |
@@ -85,13 +85,13 @@ Both share a cause: `updateMetadata` is an unlocked read-modify-write across pro
 
 ## When the code changes
 
-1. Run `git diff 37bae0a -- .pi/extensions/subagent/` (the `SYNC` commit). `check.sh` lists drifted files too. If nothing in the coverage table changed, run the check and you are done.
+1. Run `git diff 2e52b4c -- .pi/extensions/subagent/` (the `SYNC` commit). `check.sh` lists drifted files too. If nothing in the coverage table changed, run the check and you are done.
 2. For each changed function, find its action in the coverage table and compare. Ask three questions. Did a file read or write move, appear or disappear? Did an `await` appear inside a handler or `processInbox`? That would split one child step. Did a condition change, such as `ctx.isIdle()` or `hasStarted`?
 3. Edit the action in `spec/PiSubagent.tla` so it does what the code now does, with a comment naming the code. Then run `check.sh`.
 4. Read any unexpected result.
    - A `pass` row now fails: run `check.sh <row>` and replay the trace against the code, step by step. If every step is something the code can really do, it is a bug in the change. Report it with the trace in the code's terms, and do not edit the model to hide it. If a step is something the code cannot do, the model is wrong. Fix the action, and say what was wrong.
    - A `finding` row now passes: if the change fixed that bug, change its expectation to `pass` and move the finding out of this file. If not, the model no longer reaches the bug. Find out why before you go on.
    - A `mutant` row now passes: the mutation no longer breaks the model. Repair the `Mutant` branch so it again breaks the step it names.
-5. Once the model describes the code at the new commit, set `SYNC` in `check.sh` and in this file to that commit. Never move `SYNC` without step 2.
+5. Once the model describes the code at the new commit, set `SYNC` in `check.sh` and in this file to that commit. Never move `SYNC` without step 2. This repo squash-merges PRs, which rewrites the commit, so set `SYNC` to the commit on `main` after the change lands. `check.sh` fails while `SYNC` is not an ancestor of `HEAD`.
 
 A new promise, such as `stop` or worktree cleanup, gets a new invariant, a `pass` or `finding` row, and a `mutant` row that shows it can fail.

@@ -5,14 +5,15 @@
 #   .claude/skills/verify-pi-subagent-protocol/check.sh <row>      one row, with TLC's full output and trace
 #
 # Exit 0: every row ended as expected and the covered code has not changed since SYNC.
-# Exit 1: a row ended differently from its expectation. Exit 2: the covered code drifted (see SKILL.md).
+# Exit 1: a row ended differently from its expectation, or SYNC is not an ancestor of HEAD. Exit 2: the covered code
+# drifted (see SKILL.md).
 set -euo pipefail
 
 here=$(cd "$(dirname "$0")" && pwd)
 repo=$(git -C "$here" rev-parse --show-toplevel)
 
 # The commit at which the model was last confirmed to describe the covered code. Move it only after that check.
-SYNC=37bae0a
+SYNC=2e52b4c
 COVERED=(.pi/extensions/subagent/shared.ts .pi/extensions/subagent/index.ts .pi/extensions/subagent/subagent.ts)
 
 # name | N | WithRename | WithQuit | Mutant | invariant | expect
@@ -74,6 +75,12 @@ while IFS='|' read -r name n rename quit mutant inv expect; do
 	[[ -n $only ]] && echo "$out"
 done <<<"$ROWS"
 
+# A squash merge or rebase rewrites the sync commit. A missing SYNC made git diff stop the script with exit 128 and no
+# reason, and a SYNC off this history let git diff compare against the wrong code.
+if ! git -C "$repo" merge-base --is-ancestor "$SYNC" HEAD 2>/dev/null; then
+	echo "FAIL  SYNC=$SYNC is not in this checkout's history; set it to the commit on main where the model was last confirmed"
+	exit 1
+fi
 drift=$(git -C "$repo" diff --name-only "$SYNC" -- "${COVERED[@]}")
 if [[ -n $drift ]]; then
 	echo "DRIFT covered code changed since $SYNC; review it against the model (SKILL.md, When the code changes):"
