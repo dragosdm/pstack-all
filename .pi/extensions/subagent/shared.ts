@@ -39,7 +39,7 @@ export interface RunMetadata {
 	requested?: { provider?: string; model?: string; thinking?: string };
 	/** Git worktree the child runs in, on its own branch so commits outlive the run. */
 	worktree?: { repo: string; path: string; branch: string };
-	/** Set by the parent when it stops the child on quit or session switch; the child is relaunched on resume. */
+	/** Set by the parent when it stops the child on quit or session switch, and cleared by the parent when it relaunches the child on resume. */
 	suspended?: boolean;
 	state: RunState;
 	hasStarted: boolean;

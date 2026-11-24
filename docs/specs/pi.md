@@ -40,6 +40,7 @@ Pi has no built-in subagents. pstack ships its own in `.pi/extensions/subagent/`
 - Subagents cannot spawn subagents.
 - `launchRun` names the run with the `--pstack-subagent-run <run dir>` flag, and only the pi with that flag acts as the bridge. `PSTACK_SUBAGENT_RUN_DIR` stays in the environment only to refuse nested spawns. Every pi the child starts inherits that environment, and when the run was named by it, each one claimed the run. `scripts/check-pi.sh` has the poteto child start `pi --mode rpc` and stay busy for two seconds, and `wait` must still return the child's answer.
 - `wait` lists the inbox before it reads `metadata.json`. In the other order, a child that took the message between the two reads left `wait` with `idle` and an empty inbox, and `wait` printed the previous reply. `tests/pi-extension.test.ts` makes `metadata.json` a FIFO to run the child's poll during that read.
+- The parent owns `suspended`. It sets the mark when it quits and clears it when it relaunches the run, before the child starts. The child's `session_start` used to clear it, so a quit that landed while the child was starting lost the mark, and the next quit deleted the run. `scripts/check-pi.sh` writes the mark while a real child starts and requires it to survive, then quits and resumes a real `pi -p` parent and requires the child back with the mark cleared. Checked 2026-11-24 against `pi 1.5.2`.
 
 `pi-subagents` was the earlier route. It added a `subagent` tool with its own agent registry, chains, and worktrees for workflow children. pstack uses none of those beyond what the table in `docs/harness/pi.md` maps, and the port covers each mapping with one CLI flag.
 
@@ -98,7 +99,8 @@ Set `PI_BIN` to choose the binary. Needs `tmux`.
 
 - Explicit model flags chosen by a real model. No cell had a pstack-models.md role line that names a Pi model, so every billed spawn inherited the session model.
 - Results on other Pi models. Every billed cell used `openai-codex/gpt-6.1-sol` at medium effort, with the user's global Pi packages loaded.
-- `send`, `--follow-up`, `/pstack-subagent` attach, and suspend and resume on parent quit. No run exercised them.
+- `send`, `--follow-up` and `/pstack-subagent` attach. No run exercised them.
+- Suspend and resume after the parent switches sessions. Only a quit was run.
 - `/reload` inside a child. The bridge reads its flag again on the next `session_start`, and no run checked that `getFlag` still returns it after a reload.
 - Install from a git URL. Only local paths were tested. Git must keep the executable bit on `.pi/bin/pstack-subagent` and `subagent.ts`.
 - Pi's mutable `systemPromptOptions`. The extension returns `systemPrompt`, as Pi's bundled `claude-rules.ts` example does, which replaces the prompt for that run with the old prompt plus one line.
