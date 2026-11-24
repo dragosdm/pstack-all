@@ -161,10 +161,10 @@ ChildWrite ==
   /\ UNCHANGED <<cSnap, cPatch, cNext, cBatch, cCur, booted>>
   /\ UNCHANGED <<inbox, tmux>> /\ UNCHANGED piVars /\ UNCHANGED drvVars /\ UNCHANGED otherVars
 
-\* sessionStart: updateMetadata({state: ctx.isIdle() ? "idle" : "busy", suspended: undefined}); starts the 250 ms poll.
+\* sessionStart: updateMetadata({state: ctx.isIdle() ? "idle" : "busy"}); starts the 250 ms poll. The parent owns suspended.
 ChildSessionStart ==
   /\ cPc = "boot" /\ tmux
-  /\ ChildRead([state |-> IF piBusy THEN "busy" ELSE "idle", suspended |-> FALSE], "ready")
+  /\ ChildRead([state |-> IF piBusy THEN "busy" ELSE "idle"], "ready")
   /\ booted' = TRUE
   /\ UNCHANGED <<cBatch, cCur>>
   /\ UNCHANGED <<meta, inbox, tmux>> /\ UNCHANGED piVars /\ UNCHANGED drvVars /\ UNCHANGED otherVars

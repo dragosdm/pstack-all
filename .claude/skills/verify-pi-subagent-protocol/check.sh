@@ -12,7 +12,7 @@ here=$(cd "$(dirname "$0")" && pwd)
 repo=$(git -C "$here" rev-parse --show-toplevel)
 
 # The commit at which the model was last confirmed to describe the covered code. Move it only after that check.
-SYNC=8d42516
+SYNC=37bae0a
 COVERED=(.pi/extensions/subagent/shared.ts .pi/extensions/subagent/index.ts .pi/extensions/subagent/subagent.ts)
 
 # name | N | WithRename | WithQuit | Mutant | invariant | expect

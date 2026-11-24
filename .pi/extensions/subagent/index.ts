@@ -184,12 +184,14 @@ function parentRole(): Role {
 					discardRun(run);
 					continue;
 				}
-				const starting = updateMetadata(run.runDir, { state: "starting", error: undefined }) ?? run;
+				// The parent owns suspended. It clears the mark here, before the child runs, and sets it again if the
+				// relaunch fails, so the next session retries.
+				const starting = updateMetadata(run.runDir, { state: "starting", error: undefined, suspended: undefined }) ?? run;
 				try {
 					launchRun(starting);
 				} catch (error) {
 					const message = error instanceof Error ? error.message : String(error);
-					updateMetadata(run.runDir, { state: "error", error: message });
+					updateMetadata(run.runDir, { state: "error", error: message, suspended: true });
 					if (ctx.hasUI) ctx.ui.notify(`Could not resume subagent ${runDisplayName(run)}: ${message}`, "error");
 				}
 			}
@@ -293,7 +295,6 @@ function childRole(pi: ExtensionAPI, runDir: string): Role {
 				childSessionId: ctx.sessionManager.getSessionId(),
 				sessionFile: ctx.sessionManager.getSessionFile() ?? metadata.sessionFile,
 				state: ctx.isIdle() ? "idle" : "busy",
-				suspended: undefined,
 				error: undefined,
 			});
 			syncSessionName();

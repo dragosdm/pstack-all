@@ -161,5 +161,51 @@ else
   status=1
 fi
 
+# The parent quits by marking each running child suspended, then killing its tmux session. A quit soon after a spawn lands
+# while the child is still starting, and the child's session_start must keep the mark, or the parent's next session
+# neither relaunches the run nor keeps it.
+subagent() { (cd "$work/cwd" && PSTACK_PI_BIN="$pi" PI_OFFLINE=1 "$root/.pi/bin/pstack-subagent" "$@"); }
+held="$(subagent spawn --name held --provider pstack-mock --model mock --thinking off --prompt probe | sed -nE 's/^Spawned held \(([a-z0-9]+)\)$/\1/p')"
+meta="$PI_CODING_AGENT_DIR/pstack-subagents/$held/metadata.json"
+node --input-type=module -e "import { updateMetadata } from '$root/.pi/extensions/subagent/shared.ts'; updateMetadata(process.argv[1], { suspended: true })" "$(dirname "$meta")"
+early="$(jq -r '.childSessionId // "none"' "$meta")"
+for _ in $(seq 100); do [[ "$(jq -r '.childSessionId // empty' "$meta")" ]] && break; sleep 0.1; done
+if [[ "$early" != none ]]; then
+  echo "pi: FAIL the child ran session_start before the suspend mark, so the check proved nothing"
+  status=1
+elif [[ "$(jq -r '.childSessionId // empty' "$meta")" && "$(jq -r '.suspended' "$meta")" == true ]]; then
+  echo "pi: a suspend mark written while the child started survived its session_start"
+else
+  echo "pi: FAIL the child's session_start left $(jq -c '{suspended, childSessionId}' "$meta")"
+  status=1
+fi
+subagent stop "$held" >/dev/null
+
+# A real parent quit and resume. The first run spawns a child and exits, which suspends it. The second run on the same
+# session must relaunch it with the mark cleared, or a child that later exits on its own is relaunched on every resume.
+jq -n --arg out "$work/resumed" '[
+  {bash: "pstack-subagent spawn --name parked --prompt probe >/dev/null; sleep 3"}, {text: "parked"},
+  {bash: ("sleep 3; cat \"$PI_CODING_AGENT_DIR\"/pstack-subagents/*/metadata.json >" + $out + ".json; tmux has-session -t \"$(jq -r .tmuxSession " + $out + ".json)\" && echo alive >" + $out + ".tmux")},
+  {text: "resumed"}]' >"$work/resume-script.json"
+node scripts/pi-mock-model.mjs "$work/resume.port" "$work/resume.log" "$work/resume-script.json" & resume_mock=$!
+trap 'kill "$mock" "$resume_mock" 2>/dev/null; rm -rf "$work"' EXIT
+for _ in $(seq 50); do [[ -s "$work/resume.port" ]] && break; sleep 0.1; done
+jq --arg url "http://127.0.0.1:$(cat "$work/resume.port")/v1" '.providers["pstack-mock"].baseUrl = $url' \
+  "$PI_CODING_AGENT_DIR/models.json" >"$work/models.json" && mv "$work/models.json" "$PI_CODING_AGENT_DIR/models.json"
+parent() { (cd "$work/repo" && PI_OFFLINE=1 timeout 120 "$pi" -p --session "$work/parent.jsonl" --no-context-files \
+  --model pstack-mock/mock "$1" </dev/null >>"$work/resume-run.log" 2>&1) || true; }
+parent go
+parked="$(ls "$PI_CODING_AGENT_DIR/pstack-subagents")"
+suspended="$(jq -r '.suspended' "$PI_CODING_AGENT_DIR/pstack-subagents/$parked/metadata.json" 2>/dev/null || echo missing)"
+parent again
+if [[ "$suspended" == true && -s "$work/resumed.tmux" && "$(jq -r '.suspended' "$work/resumed.json")" == null ]]; then
+  echo "pi: a parent quit suspended its child, and the resumed session relaunched it with the mark cleared"
+else
+  echo "pi: FAIL quit left suspended=$suspended; resume left $(jq -c '{suspended, state}' "$work/resumed.json" 2>/dev/null || echo 'no metadata') alive=$(cat "$work/resumed.tmux" 2>/dev/null || echo no)"
+  tail -5 "$work/resume-run.log"
+  status=1
+fi
+[[ -n "$parked" ]] && subagent stop "$parked" >/dev/null || true
+
 ((status == 0)) || exit 1
 echo "pi: PASS repo root installs as a Pi package with every pstack skill, the adapter extension, and working subagents"

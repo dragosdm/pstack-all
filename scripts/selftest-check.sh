@@ -52,6 +52,8 @@ run "Pi subagent ignores --agent" pi "sed -i 's/launchArgs.push(\"--append-syste
 run "Pi subagent stop leaves the worktree" pi "sed -i 's/\"worktree\", \"remove\"/\"worktree\", \"list\"/' .pi/extensions/subagent/shared.ts"
 run "Pi subagent run is claimed by every pi the child starts" pi "sed -i 's/const runDir = pi.getFlag(RUN_FLAG);/const runDir = process.env.PSTACK_SUBAGENT_RUN_DIR;/' .pi/extensions/subagent/index.ts"
 run "Pi subagent extension loads twice inside the checkout" pi "sed -i '/if ((globalThis as any)\\[owner\\]) return;/d' .pi/extensions/subagent/index.ts"
+run "Pi subagent child clears the parent's suspend mark at boot" pi "sed -i 's/state: ctx.isIdle() ? \"idle\" : \"busy\",/& suspended: undefined,/' .pi/extensions/subagent/index.ts"
+run "Pi subagent relaunch keeps the suspend mark" pi "sed -i 's/error: undefined, suspended: undefined })/error: undefined })/' .pi/extensions/subagent/index.ts"
 run "opencode index.js removed" opencode "rm index.js"
 run "opencode adapter removed" opencode "rm docs/harness/opencode.md"
 run "opencode offers every skill to the model" opencode "sed -i 's/autoinvoke: meta\\[\"disable-model-invocation\"\\] !== true/autoinvoke: true/' .opencode/plugins/pstack.js"
