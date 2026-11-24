@@ -12,7 +12,7 @@ here=$(cd "$(dirname "$0")" && pwd)
 repo=$(git -C "$here" rev-parse --show-toplevel)
 
 # The commit at which the model was last confirmed to describe the covered code. Move it only after that check.
-SYNC=37bae0a
+SYNC=2e52b4c
 COVERED=(.pi/extensions/subagent/shared.ts .pi/extensions/subagent/index.ts .pi/extensions/subagent/subagent.ts)
 
 # name | N | WithRename | WithQuit | Mutant | invariant | expect
@@ -74,6 +74,11 @@ while IFS='|' read -r name n rename quit mutant inv expect; do
 	[[ -n $only ]] && echo "$out"
 done <<<"$ROWS"
 
+# A squash merge or rebase rewrites the sync commit, and git diff against a missing commit fails without stopping the script.
+if ! git -C "$repo" merge-base --is-ancestor "$SYNC" HEAD 2>/dev/null; then
+	echo "FAIL  SYNC=$SYNC is not in this checkout's history; set it to the commit on main where the model was last confirmed"
+	exit 1
+fi
 drift=$(git -C "$repo" diff --name-only "$SYNC" -- "${COVERED[@]}")
 if [[ -n $drift ]]; then
 	echo "DRIFT covered code changed since $SYNC; review it against the model (SKILL.md, When the code changes):"
