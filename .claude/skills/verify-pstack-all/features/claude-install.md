@@ -1,12 +1,12 @@
 # Claude Code install
 
-A Claude Code user adds this repo as a marketplace, installs `pstack`, and gets 58 `/pstack:` skills, 2 `pstack:` agents, and a SessionStart hook.
+A Claude Code user adds this repo as a marketplace, installs `pstack`, and gets 59 `/pstack:` skills, 2 `pstack:` agents, and a SessionStart hook.
 
 ## Sub-features
 
 - `install-add` registers the `pstack-all` marketplace from the repo.
 - `install-plugin` installs `pstack@pstack-all`.
-- `install-inventory` lists 58 skills and 1 SessionStart hook.
+- `install-inventory` lists 59 skills and 1 SessionStart hook.
 
 ## How to get to it (user POV)
 

@@ -1,10 +1,10 @@
 # pstack in Antigravity
 
-An Antigravity (`agy`) user installs two plugins from this repo. `pstack`, from `pstack/`, gives the 58 skills as `/pstack:<name>`. `pstack-agy`, from `.agy/`, gives the agents `poteto-agent` and `comment-sicko` and the rule `pstack-adapter`. agy offers that rule's path and description to the model, which reads it before following a skill. The rule does the job of the Claude and Codex `SessionStart` hooks.
+An Antigravity (`agy`) user installs two plugins from this repo. `pstack`, from `pstack/`, gives the 59 skills as `/pstack:<name>`. `pstack-agy`, from `.agy/`, gives the agents `poteto-agent` and `comment-sicko` and the rule `pstack-adapter`. agy offers that rule's path and description to the model, which reads it before following a skill. The rule does the job of the Claude and Codex `SessionStart` hooks.
 
 ## Sub-features
 
-- `agy-install` installs `pstack` with 58 skills and `pstack-agy` with both agents and the rule.
+- `agy-install` installs `pstack` with 59 skills and `pstack-agy` with both agents and the rule.
 - `agy-skill-names` lists every skill as `pstack:<name>` and nothing else under `pstack:`. `/pstack:how` sends the how skill to the model.
 - `agy-adapter-rule` puts the rule `pstack-adapter` and its description in the system instruction.
 - `agy-agents` starts a child for `invoke_subagent` on `poteto-agent` or `comment-sicko`, with the agent's body and the write tools.
@@ -23,7 +23,7 @@ Preconditions:
 
 - **Install, names, rule and agents, free.** Run `scripts/check-agy.sh`. It sets `HOME` and the XDG dirs to a temp folder, so it never touches your `~/.gemini`. It uses a dummy key and a scripted Gemini endpoint, `scripts/agy-mock-model.mjs`. Its output must end with `agy: PASS pstack and pstack-agy install, every skill is pstack:<name>, the rule is offered, both agents spawn with write tools`, after:
   - `agy: .agy passes plugin validate --strict`
-  - `agy: pstack installs 58 skills; pstack-agy installs agents comment-sicko,poteto-agent and rule pstack-adapter`
+  - `agy: pstack installs 59 skills; pstack-agy installs agents comment-sicko,poteto-agent and rule pstack-adapter`
   - `agy: /skills lists pstack:<name> for every skill on disk, and nothing else under pstack:`
   - `agy: /pstack:how sends the how skill to the model`
   - `agy: the system instruction offers rule pstack-adapter with its description`

@@ -29,13 +29,13 @@ Codex names pstack skills `pstack:<name>`. A prompt that mentions `$pstack:<name
 
 If the plugin root has a `plugin.json` whose `$schema` starts with `https://agent-plugins.org/schemas/`, Codex reads it as an Agent Plugin and does not read `.codex-plugin/plugin.json`. It then logs `ignoring unknown Agent Plugins manifest field` for `skills` and `agents`, and the model gets no pstack skill. compound-engineering drops that `$schema` for the same reason. Its `docs/specs/agent-plugins.md` adds that Codex cuts an Agent Plugin `SKILL.md` to its first 8000 bytes, and four pstack skills at 0.15.46 are longer than that, `poteto-mode` at 11238 bytes among them.
 
-So `scripts/sync-manifests.mjs` writes the root `plugin.json`, the Grok CLI entry file, without `$schema`. `scripts/check-grok.sh` passes on it with the same 58 skills and 2 agents as `pstack/`.
+So `scripts/sync-manifests.mjs` writes the root `plugin.json`, the Grok CLI entry file, without `$schema`. `scripts/check-grok.sh` passes on it with the same 59 skills and 2 agents as `pstack/`.
 
 If `.agents/plugins/marketplace.json` is missing, Codex reads `.claude-plugin/marketplace.json` from the same root instead. The check fails on that fallback, because Codex documents only the `.agents/plugins/` path.
 
 ## Inventory
 
-The model's skill list names 58 `pstack:` skills, the same names as `pstack/skills/`. Codex lists the 57 skills with `disable-model-invocation: true` too. opencode keeps those out of the model's list (`docs/specs/opencode.md`).
+The model's skill list names 59 `pstack:` skills, the same names as `pstack/skills/`. Codex lists the 58 skills with `disable-model-invocation: true` too. opencode keeps those out of the model's list (`docs/specs/opencode.md`).
 
 `.codex-plugin/plugin.json` declares no agents, so `poteto-agent` and `comment-sicko` are not registered. compound-engineering's plan `docs/plans/2026-04-20-001-feat-codex-native-plugin-manifests-plan.md` says Codex plugins cannot declare agents. The adapter tells the model to put an agent file's body into the spawn message instead.
 

@@ -35,7 +35,7 @@ Upstream `cursor/plugins` does not install `pstack/` in Claude Code. `scripts/ge
 2. It rewrites relative links to files it leaves out, such as `automations/` and `assets/`, so they point at GitHub.
 3. It drops `automations/`, `assets/`, `.cursor-plugin/`, and `.gitignore`.
 
-Here Claude loads `pstack/` in place, so nothing needs to be dropped or relinked. The adapter line moves into the `SessionStart` hook, which adds it to the model's context in every session. All 58 skills are covered by one line, instead of 22 skills each carrying it at `7a58391`. No `SKILL.md` changes.
+Here Claude loads `pstack/` in place, so nothing needs to be dropped or relinked. The adapter line moves into the `SessionStart` hook, which adds it to the model's context in every session. All 59 skills are covered by one line, instead of 22 skills each carrying it at `7a58391`. No `SKILL.md` changes.
 
 ## Manifest precedence
 
@@ -43,9 +43,9 @@ Grok CLI reads `.claude-plugin/plugin.json` third, after root `plugin.json` and 
 
 ## Inventory
 
-`claude plugin details pstack@pstack-all` lists 58 skills and 1 `SessionStart` hook. It lists **0 agents**, because `details` counts only a default `agents/` folder. A model run sees both agents. A minimal plugin with custom agent paths showed the same split, so this is how `details` reports, not a pstack issue.
+`claude plugin details pstack@pstack-all` lists 59 skills and 1 `SessionStart` hook. It lists **0 agents**, because `details` counts only a default `agents/` folder. A model run sees both agents. A minimal plugin with custom agent paths showed the same split, so this is how `details` reports, not a pstack issue.
 
-Upstream's generated tree at `1ba91fc`, installed the same way, lists the same 58 skills and the same 2 agents. At `7a58391` the tree still has 58 skills and 2 agents, counted with `git ls-tree` and not installed.
+Upstream's generated tree at `1ba91fc`, installed the same way, lists the same 58 skills and the same 2 agents. At `7a58391` the tree still has 58 skills and 2 agents, and at `b7b93c3` 59 skills and 2 agents with `reframe` added, counted with `git ls-tree` and not installed.
 
 ## Check
 

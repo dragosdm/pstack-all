@@ -1,6 +1,6 @@
 {
   "name": "pstack-agy",
-  "version": "0.15.46",
+  "version": "0.15.48",
   "description": "Antigravity adapter for pstack: install pstack/ alongside it.",
   "author": {
     "name": "Dragos Musetescu"

@@ -35,7 +35,7 @@ With none of the three at the root, Grok scans subdirectories and installs `psta
 
 ## Inventory
 
-Both installs, the repo root and `pstack/` on its own, give 58 skills and 2 agents (`pstack:comment-sicko`, `pstack:poteto-agent`). Names, descriptions, and `userInvocable` are identical.
+Both installs, the repo root and `pstack/` on its own, give 59 skills and 2 agents (`pstack:comment-sicko`, `pstack:poteto-agent`). Names, descriptions, and `userInvocable` are identical.
 
 ## Marketplace
 

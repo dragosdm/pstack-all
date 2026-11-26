@@ -20,7 +20,7 @@ Preconditions:
 - `pi` and `tmux` on `PATH`. No helper in `scripts/` launches Pi.
 
 - **Install, adapter and subagents, free.** Run `scripts/check-pi.sh`. It installs the repo into a throwaway `PI_CODING_AGENT_DIR` and drives Pi against a scripted mock model. Its output must end with `pi: PASS repo root installs as a Pi package with every pstack skill, the adapter extension, and working subagents`. The lines before it include:
-  - `pi: get_commands lists 58 skills from pstack/skills, the same names as on disk`
+  - `pi: get_commands lists 59 skills from pstack/skills, the same names as on disk`
   - `pi: run inside the checkout with pstack installed from another path too, each pstack:<name> is listed once, without a suffix`, which also proves that a second copy of either extension stays inert
   - `pi: the system prompt of a print run tells the model to read docs/harness/pi.md`
   - `pi: /pstack:how loads the how skill with its arguments`
