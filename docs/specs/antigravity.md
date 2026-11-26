@@ -11,9 +11,9 @@ agy plugin install <checkout>/pstack
 agy plugin install <checkout>/.agy
 ```
 
-`pstack/` is upstream, unchanged. It gives the 58 skills as `/pstack:<name>` and the `comment-sicko` agent. `.agy/` is the `pstack-agy` adapter plugin. It gives the adapter rule and both pstack agents with Antigravity frontmatter.
+`pstack/` is upstream, unchanged. It gives the 59 skills as `/pstack:<name>` and the `comment-sicko` agent. `.agy/` is the `pstack-agy` adapter plugin. It gives the adapter rule and both pstack agents with Antigravity frontmatter.
 
-From GitHub, `agy plugin install https://github.com/dragosdm/pstack-all/tree/main/pstack` cloned the repo and installed `pstack` with 58 skills and `comment-sicko`, in a throwaway `HOME`. `https://github.com/dragosdm/pstack-all/tree/main/.agy` installed `pstack-agy` with both agents and the rule the same way, on 2026-11-23 after the merge.
+From GitHub, `agy plugin install https://github.com/dragosdm/pstack-all/tree/main/pstack` cloned the repo and installed `pstack` with 59 skills and `comment-sicko`, in a throwaway `HOME`. `https://github.com/dragosdm/pstack-all/tree/main/.agy` installed `pstack-agy` with both agents and the rule the same way, on 2026-11-23 after the merge.
 
 `agy plugin install` copies the folder into `~/.gemini/config/plugins/<name>/`, so the two land in `plugins/pstack/` and `plugins/pstack-agy/`. `agy plugin uninstall pstack` and `agy plugin uninstall pstack-agy` remove them. `scripts/check-agy.sh` runs both installs in a throwaway `HOME`.
 
@@ -48,7 +48,7 @@ Both plugins define `comment-sicko`. With both installed, a spawn of `comment-si
 
 A user types `/pstack:<name>`. In print mode, agy puts the skill body into the user turn as `The user has explicitly invoked the (pstack:how) skill`, with no folder path. The adapter tells the model to resolve relative links against `<pstack>/skills/<name>/`.
 
-Upstream sets `disable-model-invocation: true` on every skill except `setup-pstack`. agy listed only `setup-pstack` of the pstack skills to the model, so the other 57 run only by command.
+Upstream sets `disable-model-invocation: true` on every skill except `setup-pstack`. agy listed only `setup-pstack` of the pstack skills to the model, so the other 58 run only by command.
 
 ## Tools
 

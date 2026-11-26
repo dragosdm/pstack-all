@@ -5,7 +5,7 @@ A Codex user adds this repo as a marketplace with `codex plugin marketplace add 
 ## Sub-features
 
 - `codex-install` reads the `pstack-all` marketplace from `.agents/plugins/marketplace.json` and installs `pstack@pstack-all` at the `.codex-plugin/plugin.json` version.
-- `codex-inventory` gives the model the same 58 `pstack:` skill names as `pstack/skills/`.
+- `codex-inventory` gives the model the same 59 `pstack:` skill names as `pstack/skills/`.
 - `codex-adapter-hook` gives the model the adapter line once the hook is trusted.
 - `codex-skill-run` turns a `$pstack:<name>` mention into the whole `SKILL.md` as a message.
 
@@ -25,7 +25,7 @@ Preconditions:
   - `codex: pstack@pstack-all installed version <version> into the plugin cache`
   - `codex: hooks/list shows the pstack SessionStart hook from .codex-plugin/hooks.json, untrusted until the user trusts it`
   - `codex: the trusted hook gives the model the adapter line, naming the installed docs/harness/codex.md`
-  - `codex: the model's skill list names 58 pstack: skills, the same names as pstack/skills`
+  - `codex: the model's skill list names 59 pstack: skills, the same names as pstack/skills`
   - `codex: $pstack:poteto-mode reached the model as the whole SKILL.md, <bytes> bytes`
 - **A real model.** Not scripted. The 2026-11-03 real-session runs in `docs/specs/codex.md` were manual: `codex exec` and the TUI with a ChatGPT login, under a throwaway `CODEX_HOME`, with the hook trusted by hand. They bill the user's OpenAI account. Report a real-model claim as skipped unless you repeat that run and name its evidence.
 
